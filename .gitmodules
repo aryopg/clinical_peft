@@ -1,0 +1,3 @@
+[submodule "submodules/peft"]
+	path = submodules/peft
+	url = git@github.com:huggingface/peft.git

@@ -1,0 +1,19 @@
+name: clinical_peft
+channels:
+  - defaults
+  - conda-forge
+  - pyg
+dependencies:
+  - python=3.10
+  - transformers
+  - tqdm
+  - matplotlib
+  - pydantic
+  - python-dotenv
+  - wandb
+  - pandas
+  - isort
+  - black
+  - sentencepiece
+  - datasets
+prefix: /Users/aryopg/miniconda3/envs/clinical_peft

@@ -1,0 +1,23 @@
+model_configs:
+  peft_type: "lora"
+  task_type: "causal_lm"
+  model_name_or_path: "data/model/llama/7B"
+  peft_hyperparameters:
+    r: 8
+    lora_alpha: 32
+    lora_dropout: 0.1
+    bias: "none"
+  model_hyperparameters:
+    learning_rate: 0.001
+    max_seq_len: 128
+training_configs:
+  dataset_paths:
+    - "data/dataset/mini-mimic-iv/notes_cleaned.txt.gz"
+  random_seed: 1234
+  device: 0
+  epochs: 1000
+  batch_size: 256
+  grad_accumulation_step: 1
+  eval_steps: 1000
+  checkpoint_steps: 1000
+  outputs_dir: "outputs"
