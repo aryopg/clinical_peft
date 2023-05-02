@@ -73,7 +73,6 @@ def main():
         os.path.join(os.getcwd(), configs.training_configs.outputs_dir)
     )
     common_utils.save_training_configs(configs, outputs_dir)
-    device = common_utils.setup_device(configs.training_configs.device)
 
     # Login to HF
     huggingface_hub.login(token=os.environ["HF_DOWNLOAD_TOKEN"])
@@ -86,6 +85,7 @@ def main():
             "wandb": {
                 "entity": "aryopg",
                 "mode": "online" if args.log_to_wandb else "disabled",
+                "config": configs,
             }
         },
     )
@@ -155,7 +155,8 @@ def main():
         model.train()
         total_loss = 0
         for step, batch in enumerate(tqdm(train_dataloader)):
-            print(batch)
+            # Manually remove token type ids
+            batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
             outputs = model(**batch)
             loss = outputs.loss
             total_loss += loss.detach().float()
