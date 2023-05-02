@@ -15,7 +15,7 @@ training_configs:
     - aryopg/mimic-iv
   random_seed: 1234
   device: 0
-  epochs: 1000
+  epochs: 100
   batch_size: 256
   grad_accumulation_step: 1
   eval_steps: 1000
