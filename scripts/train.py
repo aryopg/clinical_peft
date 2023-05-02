@@ -10,45 +10,23 @@ from dotenv import load_dotenv
 
 load_dotenv("env/.env")
 
+import huggingface_hub
 import torch
-import wandb
-import yaml
 from accelerate import Accelerator
 from datasets import load_dataset
-from peft import (
-    AdaLoraConfig,
-    AdaptionPromptConfig,
-    LoraConfig,
-    PeftConfig,
-    PrefixTuningConfig,
-    PromptEncoderConfig,
-    PromptTuningConfig,
-    TaskType,
-    get_peft_model,
-)
+from peft import PeftConfig, get_peft_model
 from torch.utils.data import DataLoader
 from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
     DataCollatorForLanguageModeling,
-    LlamaForCausalLM,
-    LlamaTokenizer,
     PreTrainedTokenizer,
-    default_data_collator,
     get_linear_schedule_with_warmup,
 )
 
-from clinical_peft.configs import Configs, ModelConfigs, PEFTTaskType, PEFTType
-from clinical_peft.preprocessing_dataset import group_texts
+from clinical_peft.configs import Configs, ModelConfigs, PEFTTaskType
+from clinical_peft.constants import PEFT_CONFIGS, TASK_TYPE
 from clinical_peft.utils import common_utils
-
-TASKTYPE = {"causal_lm": TaskType.CAUSAL_LM}
-PEFTCONFIGS = {
-    "lora": LoraConfig,
-    "prefix_tuning": PrefixTuningConfig,
-    "p_tuning": PromptEncoderConfig,
-    "prompt_tuning": PromptTuningConfig,
-    "adalora": AdaLoraConfig,
-    "adaptation_prompt_tuning": AdaptionPromptConfig,
-}
 
 
 def argument_parser():
@@ -60,43 +38,14 @@ def argument_parser():
 
 
 def load_peft_config(model_configs: ModelConfigs) -> PeftConfig:
-    return PEFTCONFIGS[model_configs.peft_type](
-        task_type=TASKTYPE[PEFTTaskType[model_configs.task_type]],
+    return PEFT_CONFIGS[model_configs.peft_type](
+        task_type=TASK_TYPE[PEFTTaskType[model_configs.task_type]],
         inference_mode=False,
         **model_configs.peft_hyperparameters,
     )
 
 
-def main():
-    args = argument_parser()
-    configs = Configs(**common_utils.load_yaml(args.config_filepath))
-
-    common_utils.setup_random_seed(configs.training_configs.random_seed)
-    outputs_dir = common_utils.setup_experiment_folder(
-        os.path.join(os.getcwd(), configs.training_configs.outputs_dir)
-    )
-    common_utils.save_training_configs(configs, outputs_dir)
-    device = common_utils.setup_device(configs.training_configs.device)
-
-    accelerator = Accelerator(log_with="wandb")
-    accelerator.init_trackers(
-        project_name="Clinical-PEFT",
-        init_kwargs={
-            "wandb": {
-                "entity": "aryopg",
-                "mode": "online" if args.log_to_wandb else "disabled",
-            }
-        },
-    )
-
-    # Load Tokenizer
-    tokenizer: PreTrainedTokenizer = LlamaTokenizer.from_pretrained(
-        configs.model_configs.model_name_or_path
-    )
-
-    # Load dataset
-    dataset = load_dataset("text", data_files=configs.training_configs.dataset_paths)
-
+def preprocess_dataset(dataset, configs, accelerator, tokenizer):
     with accelerator.main_process_first():
         processed_datasets = dataset.map(
             lambda x: tokenizer(
@@ -111,9 +60,48 @@ def main():
             desc="Running tokenizer on dataset",
         )
     accelerator.wait_for_everyone()
-    print(processed_datasets["train"])
 
-    train_dataset = processed_datasets["train"]
+    return processed_datasets["train"]
+
+
+def main():
+    args = argument_parser()
+    configs = Configs(**common_utils.load_yaml(args.config_filepath))
+
+    common_utils.setup_random_seed(configs.training_configs.random_seed)
+    outputs_dir = common_utils.setup_experiment_folder(
+        os.path.join(os.getcwd(), configs.training_configs.outputs_dir)
+    )
+    common_utils.save_training_configs(configs, outputs_dir)
+    device = common_utils.setup_device(configs.training_configs.device)
+
+    # Login to HF
+    huggingface_hub.login(token=os.environ["HF_DOWNLOAD_TOKEN"])
+
+    # Instantiate Accelerator and Login to WandB
+    accelerator = Accelerator(log_with="wandb")
+    accelerator.init_trackers(
+        project_name="Clinical-PEFT",
+        init_kwargs={
+            "wandb": {
+                "entity": "aryopg",
+                "mode": "online" if args.log_to_wandb else "disabled",
+            }
+        },
+    )
+
+    # Load dataset
+    # TODO: Allow multiple datasets load
+    dataset = load_dataset(configs.training_configs.dataset_paths[0], data_files="*.gz")
+
+    # TODO: Instantiate trainer class here
+
+    # Load Tokenizer
+    tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
+        configs.model_configs.model_name_or_path
+    )
+
+    train_dataset = preprocess_dataset(dataset, configs, accelerator, tokenizer)
 
     # FIXME: Use EOS token for padding for the moment
     tokenizer.pad_token = tokenizer.eos_token
@@ -127,12 +115,12 @@ def main():
         pin_memory=True,
     )
 
-    print(next(iter(train_dataloader)))
-
     # Load Model
     peft_config: PeftConfig = load_peft_config(configs.model_configs)
 
-    model = LlamaForCausalLM.from_pretrained(configs.model_configs.model_name_or_path)
+    model = AutoModelForCausalLM.from_pretrained(
+        configs.model_configs.model_name_or_path
+    )
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
 
