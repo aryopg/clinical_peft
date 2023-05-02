@@ -16,4 +16,5 @@ dependencies:
   - black
   - sentencepiece
   - datasets
+  - huggingface_hub
 prefix: /Users/aryopg/miniconda3/envs/clinical_peft
