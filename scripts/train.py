@@ -75,16 +75,16 @@ def main():
     common_utils.save_training_configs(configs, outputs_dir)
 
     # Login to HF
-    huggingface_hub.login(token=os.environ["HF_DOWNLOAD_TOKEN"])
+    huggingface_hub.login(token=os.getenv("HF_DOWNLOAD_TOKEN", ""))
 
     # Instantiate Accelerator and Login to WandB
     accelerator = Accelerator(log_with="wandb")
     if accelerator.is_main_process:
         accelerator.init_trackers(
-            project_name=os.environ["WANDB_PROJECT_NAME"],
+            project_name=os.getenv("WANDB_PROJECT_NAME", ""),
             init_kwargs={
                 "wandb": {
-                    "entity": os.environ["WANDB_ENTITY"],
+                    "entity": os.getenv("WANDB_ENTITY", ""),
                     "mode": "online" if args.log_to_wandb else "disabled",
                     "config": configs,
                 }
