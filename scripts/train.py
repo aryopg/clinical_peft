@@ -79,16 +79,18 @@ def main():
 
     # Instantiate Accelerator and Login to WandB
     accelerator = Accelerator(log_with="wandb")
-    accelerator.init_trackers(
-        project_name="Clinical-PEFT",
-        init_kwargs={
-            "wandb": {
-                "entity": "aryopg",
-                "mode": "online" if args.log_to_wandb else "disabled",
-                "config": configs,
-            }
-        },
-    )
+    if accelerator.is_main_process:
+        accelerator.init_trackers(
+            project_name=os.environ["WANDB_PROJECT_NAME"],
+            init_kwargs={
+                "wandb": {
+                    "entity": os.environ["WANDB_ENTITY"],
+                    "mode": "online" if args.log_to_wandb else "disabled",
+                    "config": configs,
+                }
+            },
+        )
+    accelerator.wait_for_everyone()
 
     # Load dataset
     # TODO: Allow multiple datasets load
