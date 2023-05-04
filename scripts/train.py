@@ -13,7 +13,7 @@ load_dotenv("env/.env")
 import huggingface_hub
 import torch
 from accelerate import Accelerator
-from datasets import load_dataset, Dataset
+from datasets import DatasetDict, load_dataset
 from peft import PeftConfig, get_peft_model
 from torch.utils.data import DataLoader
 from transformers import (
@@ -45,7 +45,12 @@ def load_peft_config(model_configs: ModelConfigs) -> PeftConfig:
     )
 
 
-def preprocess_dataset(dataset: Dataset, configs: Configs, accelerator: Accelerator, tokenizer: PreTrainedTokenizer) -> :
+def preprocess_dataset(
+    dataset: DatasetDict,
+    configs: Configs,
+    accelerator: Accelerator,
+    tokenizer: PreTrainedTokenizer,
+) -> DatasetDict:
     with accelerator.main_process_first():
         processed_datasets = dataset.map(
             lambda x: tokenizer(
@@ -60,10 +65,12 @@ def preprocess_dataset(dataset: Dataset, configs: Configs, accelerator: Accelera
             desc="Running tokenizer on dataset",
         )
     accelerator.wait_for_everyone()
-    
+
     if configs.training_configs.test_size > 0:
-        processed_datasets = processed_datasets.train_test_split(test_size=configs.training_configs.test_size, shuffle=True)
-    
+        processed_datasets = processed_datasets.train_test_split(
+            test_size=configs.training_configs.test_size, shuffle=True
+        )
+
     return processed_datasets
 
 
@@ -81,7 +88,10 @@ def main():
     huggingface_hub.login(token=os.getenv("HF_DOWNLOAD_TOKEN", ""))
 
     # Instantiate Accelerator and Login to WandB
-    accelerator = Accelerator(gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps, log_with="wandb")
+    accelerator = Accelerator(
+        gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
+        log_with="wandb",
+    )
     if accelerator.is_main_process:
         accelerator.init_trackers(
             project_name=os.getenv("WANDB_PROJECT_NAME", ""),
