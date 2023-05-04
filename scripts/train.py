@@ -185,7 +185,7 @@ def main():
             optimizer.zero_grad()
             train_loss = loss.detach().float()
             train_ppl = torch.exp(train_loss)
-            accelerator.print(f"{step=}: {train_ppl=} {train_loss=}")
+            accelerator.print(f"{step=}: {train_ppl.item()=} {train_loss.item()=}")
 
         if (
             step > configs.training_configs.steps
