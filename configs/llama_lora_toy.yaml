@@ -13,11 +13,11 @@ model_configs:
     gradient_accumulation_steps: 4
 training_configs:
   dataset_paths:
-    - aryopg/mimic-iv
+    - aryopg/mini-mimic-iv
   random_seed: 1234
   device: 0
   num_process: 8
-  test_size: 0.0
+  test_size: 0.1
   steps: 1000000
   batch_size: 8
   grad_accumulation_step: 1

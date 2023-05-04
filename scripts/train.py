@@ -48,30 +48,129 @@ def load_peft_config(model_configs: ModelConfigs) -> PeftConfig:
 def preprocess_dataset(
     dataset: DatasetDict,
     configs: Configs,
-    accelerator: Accelerator,
     tokenizer: PreTrainedTokenizer,
 ) -> DatasetDict:
-    with accelerator.main_process_first():
-        processed_datasets = dataset.map(
-            lambda x: tokenizer(
-                x["text"],
-                max_length=configs.model_configs.model_hyperparameters.max_seq_len,
-                truncation=True,
-            ),
-            batched=True,
-            num_proc=configs.training_configs.num_process,
-            remove_columns=dataset["train"].column_names,
-            load_from_cache_file=True,
-            desc="Running tokenizer on dataset",
-        )
-    accelerator.wait_for_everyone()
+    processed_datasets = dataset.map(
+        lambda x: tokenizer(
+            x["text"],
+            max_length=configs.model_configs.model_hyperparameters.max_seq_len,
+            truncation=True,
+        ),
+        batched=True,
+        num_proc=configs.training_configs.num_process,
+        remove_columns=dataset["train"].column_names,
+        load_from_cache_file=True,
+        desc="Running tokenizer on dataset",
+    )
 
-    if configs.training_configs.test_size > 0:
+    if configs.training_configs.test_size > 0 and len(processed_datasets.keys()) == 1:
+        # By default, DatasetDict only contains "train" key
+        processed_datasets = processed_datasets["train"]
+
         processed_datasets = processed_datasets.train_test_split(
             test_size=configs.training_configs.test_size, shuffle=True
         )
 
     return processed_datasets
+
+
+def train(
+    configs: Configs,
+    accelerator: Accelerator,
+    train_dataloader: DataLoader,
+    eval_dataloader: DataLoader,
+    tokenizer: PreTrainedTokenizer,
+    outputs_dir: str,
+):
+    # Load Model
+    peft_config: PeftConfig = load_peft_config(configs.model_configs)
+
+    model = AutoModelForCausalLM.from_pretrained(
+        configs.model_configs.model_name_or_path
+    )
+    model = get_peft_model(model, peft_config)
+    model.print_trainable_parameters()
+
+    # optimizer
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=configs.model_configs.model_hyperparameters.learning_rate
+    )
+
+    # lr scheduler
+    lr_scheduler = get_linear_schedule_with_warmup(
+        optimizer=optimizer,
+        num_warmup_steps=0,
+        num_training_steps=min(len(train_dataloader), configs.training_configs.steps),
+    )
+
+    (
+        model,
+        train_dataloader,
+        optimizer,
+        lr_scheduler,
+    ) = accelerator.prepare(
+        model,
+        train_dataloader,
+        optimizer,
+        lr_scheduler,
+    )
+
+    # Train
+    for train_step, batch in enumerate(tqdm(train_dataloader)):
+        model.train()
+        # Manually remove token type ids
+        with accelerator.accumulate(model):
+            batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
+            outputs = model(**batch)
+            loss = outputs.loss
+            accelerator.backward(loss)
+            optimizer.step()
+            lr_scheduler.step()
+            optimizer.zero_grad()
+            train_loss = loss.detach().float()
+            train_ppl = torch.exp(train_loss)
+            accelerator.print(
+                f"{train_step=}: {train_ppl.item()=} {train_loss.item()=}"
+            )
+
+        if train_step % configs.training_configs.eval_steps == 0:
+            model.eval()
+            total_loss = 0
+            for batch in enumerate(tqdm(eval_dataloader)):
+                batch = {k: v for k, v in batch.items() if k not in ["token_type_ids"]}
+                with torch.no_grad():
+                    outputs = model(**batch)
+                    loss = outputs.loss
+                    total_loss += loss.detach().float().item()
+            eval_loss = total_loss / len(eval_dataloader)
+            eval_ppl = torch.exp(eval_loss)
+            accelerator.print(f"{train_step=}: {eval_ppl.item()=} {eval_loss.item()=}")
+            accelerator.log(
+                {
+                    "train_loss": train_loss,
+                    "train_ppl": train_ppl,
+                    "eval_loss": eval_loss,
+                    "eval_ppl": eval_ppl,
+                },
+                step=train_step,
+            )
+
+        if (
+            train_step > configs.training_configs.steps
+            or train_step % configs.training_configs.checkpoint_steps == 0
+        ):
+            accelerator.save_state(output_dir=os.path.join(outputs_dir, "checkpoint"))
+
+        if train_step >= configs.training_configs.steps:
+            break
+
+    accelerator.wait_for_everyone()
+    model_name = model_name.split("/")[-1]
+    model.push_to_hub(
+        "aryopg/" + f"{model_name}_{peft_config.peft_type}_{peft_config.task_type}",
+        state_dict=accelerator.get_state_dict(model),
+        use_auth_token=True,
+    )
 
 
 def main():
@@ -109,16 +208,15 @@ def main():
     # TODO: Allow multiple datasets load
     dataset = load_dataset(configs.training_configs.dataset_paths[0], data_files="*.gz")
 
-    # TODO: Instantiate trainer class here
-
     # Load Tokenizer
     tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
         configs.model_configs.model_name_or_path
     )
 
-    dataset = preprocess_dataset(dataset, configs, accelerator, tokenizer)
+    with accelerator.main_process_first():
+        dataset = preprocess_dataset(dataset, configs, tokenizer)
+    accelerator.wait_for_everyone()
 
-    # FIXME: Use EOS token for padding for the moment
     tokenizer.pad_token = tokenizer.eos_token
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
@@ -130,7 +228,7 @@ def main():
         pin_memory=True,
     )
     if configs.training_configs.test_size > 0:
-        test_dataloader = DataLoader(
+        eval_dataloader = DataLoader(
             dataset["test"],
             shuffle=True,
             collate_fn=data_collator,
@@ -138,70 +236,13 @@ def main():
             pin_memory=True,
         )
 
-    # Load Model
-    peft_config: PeftConfig = load_peft_config(configs.model_configs)
-
-    model = AutoModelForCausalLM.from_pretrained(
-        configs.model_configs.model_name_or_path
-    )
-    model = get_peft_model(model, peft_config)
-    model.print_trainable_parameters()
-
-    # optimizer
-    optimizer = torch.optim.AdamW(
-        model.parameters(), lr=configs.model_configs.model_hyperparameters.learning_rate
-    )
-
-    # lr scheduler
-    lr_scheduler = get_linear_schedule_with_warmup(
-        optimizer=optimizer,
-        num_warmup_steps=0,
-        num_training_steps=(len(train_dataloader) * configs.training_configs.epochs),
-    )
-
-    (
-        model,
+    train(
+        configs,
+        accelerator,
         train_dataloader,
-        optimizer,
-        lr_scheduler,
-    ) = accelerator.prepare(
-        model,
-        train_dataloader,
-        optimizer,
-        lr_scheduler,
-    )
-
-    # Train
-    for step, batch in enumerate(tqdm(train_dataloader)):
-        model.train()
-        # Manually remove token type ids
-        with accelerator.accumulate(model):
-            batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
-            outputs = model(**batch)
-            loss = outputs.loss
-            accelerator.backward(loss)
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad()
-            train_loss = loss.detach().float()
-            train_ppl = torch.exp(train_loss)
-            accelerator.print(f"{step=}: {train_ppl.item()=} {train_loss.item()=}")
-
-        if (
-            step > configs.training_configs.steps
-            or step % configs.training_configs.checkpoint_steps
-        ):
-            accelerator.save_state(output_dir=os.path.join(outputs_dir, "checkpoint"))
-
-        if step >= configs.training_configs.steps:
-            break
-
-    accelerator.wait_for_everyone()
-    model_name = model_name.split("/")[-1]
-    model.push_to_hub(
-        "aryopg/" + f"{model_name}_{peft_config.peft_type}_{peft_config.task_type}",
-        state_dict=accelerator.get_state_dict(model),
-        use_auth_token=True,
+        eval_dataloader,
+        tokenizer,
+        outputs_dir,
     )
 
 
