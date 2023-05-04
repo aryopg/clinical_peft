@@ -59,7 +59,7 @@ def preprocess_dataset(
                 truncation=True,
             ),
             batched=True,
-            num_proc=4,
+            num_proc=configs.training_configs.num_process,
             remove_columns=dataset["train"].column_names,
             load_from_cache_file=True,
             desc="Running tokenizer on dataset",

@@ -16,6 +16,7 @@ training_configs:
     - aryopg/mimic-iv
   random_seed: 1234
   device: 0
+  num_process: 8
   test_size: 0.0
   epochs: 10
   batch_size: 4

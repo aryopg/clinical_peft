@@ -38,6 +38,7 @@ class TrainingConfigs(BaseModel):
     dataset_paths: List[str]
     random_seed: int = 1234
     device: int = 0
+    num_process: int = 8
     test_size: float = 0.1
     epochs: int = 1000
     batch_size: int = 256
