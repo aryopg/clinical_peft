@@ -20,6 +20,7 @@ class PEFTType(str, Enum):
 class ModelHyperparameters(BaseModel):
     learning_rate: float
     max_seq_len: int
+    gradient_accumulation_steps: int
 
 
 class ModelConfigs(BaseModel):
@@ -37,6 +38,7 @@ class TrainingConfigs(BaseModel):
     dataset_paths: List[str]
     random_seed: int = 1234
     device: int = 0
+    test_size: float = 0.1
     epochs: int = 1000
     batch_size: int = 256
     grad_accumulation_step: int = 1

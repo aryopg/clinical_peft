@@ -13,7 +13,7 @@ load_dotenv("env/.env")
 import huggingface_hub
 import torch
 from accelerate import Accelerator
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from peft import PeftConfig, get_peft_model
 from torch.utils.data import DataLoader
 from transformers import (
@@ -45,7 +45,7 @@ def load_peft_config(model_configs: ModelConfigs) -> PeftConfig:
     )
 
 
-def preprocess_dataset(dataset, configs, accelerator, tokenizer):
+def preprocess_dataset(dataset: Dataset, configs: Configs, accelerator: Accelerator, tokenizer: PreTrainedTokenizer) -> :
     with accelerator.main_process_first():
         processed_datasets = dataset.map(
             lambda x: tokenizer(
@@ -60,8 +60,11 @@ def preprocess_dataset(dataset, configs, accelerator, tokenizer):
             desc="Running tokenizer on dataset",
         )
     accelerator.wait_for_everyone()
-
-    return processed_datasets["train"]
+    
+    if configs.training_configs.test_size > 0:
+        processed_datasets = processed_datasets.train_test_split(test_size=configs.training_configs.test_size, shuffle=True)
+    
+    return processed_datasets
 
 
 def main():
@@ -78,7 +81,7 @@ def main():
     huggingface_hub.login(token=os.getenv("HF_DOWNLOAD_TOKEN", ""))
 
     # Instantiate Accelerator and Login to WandB
-    accelerator = Accelerator(log_with="wandb")
+    accelerator = Accelerator(gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps, log_with="wandb")
     if accelerator.is_main_process:
         accelerator.init_trackers(
             project_name=os.getenv("WANDB_PROJECT_NAME", ""),
@@ -103,19 +106,27 @@ def main():
         configs.model_configs.model_name_or_path
     )
 
-    train_dataset = preprocess_dataset(dataset, configs, accelerator, tokenizer)
+    dataset = preprocess_dataset(dataset, configs, accelerator, tokenizer)
 
     # FIXME: Use EOS token for padding for the moment
     tokenizer.pad_token = tokenizer.eos_token
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
     train_dataloader = DataLoader(
-        train_dataset,
+        dataset["train"],
         shuffle=True,
         collate_fn=data_collator,
         batch_size=configs.training_configs.batch_size,
         pin_memory=True,
     )
+    if configs.training_configs.test_size > 0:
+        test_dataloader = DataLoader(
+            dataset["test"],
+            shuffle=True,
+            collate_fn=data_collator,
+            batch_size=configs.training_configs.batch_size,
+            pin_memory=True,
+        )
 
     # Load Model
     peft_config: PeftConfig = load_peft_config(configs.model_configs)
@@ -155,21 +166,19 @@ def main():
     for epoch in range(configs.training_configs.epochs):
         # Train
         model.train()
-        total_loss = 0
-        for step, batch in enumerate(tqdm(train_dataloader)):
+        for batch in tqdm(train_dataloader):
             # Manually remove token type ids
-            batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
-            outputs = model(**batch)
-            loss = outputs.loss
-            total_loss += loss.detach().float()
-            accelerator.backward(loss)
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad()
-
-        train_epoch_loss = total_loss / len(train_dataloader)
-        train_ppl = torch.exp(train_epoch_loss)
-        accelerator.print(f"{epoch=}: {train_ppl=} {train_epoch_loss=}")
+            with accelerator.accumulate(model):
+                batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
+                outputs = model(**batch)
+                loss = outputs.loss
+                accelerator.backward(loss)
+                optimizer.step()
+                lr_scheduler.step()
+                optimizer.zero_grad()
+                train_loss = loss.detach().float()
+                train_ppl = torch.exp(train_loss)
+                accelerator.print(f"{epoch=}: {train_ppl=} {train_loss=}")
 
     accelerator.wait_for_everyone()
     model_name = configs.model_configs.model_name_or_path.replace("data/model", "")
