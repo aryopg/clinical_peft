@@ -171,28 +171,33 @@ def main():
         lr_scheduler,
     )
 
-    accelerator.print(model)
-
-    for epoch in range(configs.training_configs.epochs):
-        # Train
+    # Train
+    for step, batch in enumerate(tqdm(train_dataloader)):
         model.train()
-        for batch in tqdm(train_dataloader):
-            # Manually remove token type ids
-            with accelerator.accumulate(model):
-                batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
-                outputs = model(**batch)
-                loss = outputs.loss
-                accelerator.backward(loss)
-                optimizer.step()
-                lr_scheduler.step()
-                optimizer.zero_grad()
-                train_loss = loss.detach().float()
-                train_ppl = torch.exp(train_loss)
-                accelerator.print(f"{epoch=}: {train_ppl=} {train_loss=}")
+        # Manually remove token type ids
+        with accelerator.accumulate(model):
+            batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
+            outputs = model(**batch)
+            loss = outputs.loss
+            accelerator.backward(loss)
+            optimizer.step()
+            lr_scheduler.step()
+            optimizer.zero_grad()
+            train_loss = loss.detach().float()
+            train_ppl = torch.exp(train_loss)
+            accelerator.print(f"{step=}: {train_ppl=} {train_loss=}")
+
+        if (
+            step > configs.training_configs.steps
+            or step % configs.training_configs.checkpoint_steps
+        ):
+            accelerator.save_state(output_dir=os.path.join(outputs_dir, "checkpoint"))
+
+        if step >= configs.training_configs.steps:
+            break
 
     accelerator.wait_for_everyone()
-    model_name = configs.model_configs.model_name_or_path.replace("data/model", "")
-    model_name = model_name.replace("/", "_")
+    model_name = model_name.split("/")[-1]
     model.push_to_hub(
         "aryopg/" + f"{model_name}_{peft_config.peft_type}_{peft_config.task_type}",
         state_dict=accelerator.get_state_dict(model),

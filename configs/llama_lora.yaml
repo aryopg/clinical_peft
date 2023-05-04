@@ -18,9 +18,9 @@ training_configs:
   device: 0
   num_process: 8
   test_size: 0.0
-  epochs: 10
+  steps: 1000000
   batch_size: 8
   grad_accumulation_step: 1
   eval_steps: 1000
-  checkpoint_steps: 1000
+  checkpoint_steps: 10000
   outputs_dir: "outputs"

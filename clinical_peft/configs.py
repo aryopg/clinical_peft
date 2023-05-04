@@ -40,7 +40,7 @@ class TrainingConfigs(BaseModel):
     device: int = 0
     num_process: int = 8
     test_size: float = 0.1
-    epochs: int = 1000
+    steps: int = 1000000
     batch_size: int = 256
     grad_accumulation_step: int = 1
     eval_steps: int = 1000
