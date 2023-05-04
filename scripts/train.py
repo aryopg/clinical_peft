@@ -136,7 +136,7 @@ def train(
         if train_step % configs.training_configs.eval_steps == 0:
             model.eval()
             total_loss = 0
-            for batch in enumerate(tqdm(eval_dataloader)):
+            for batch in tqdm(eval_dataloader):
                 batch = {k: v for k, v in batch.items() if k not in ["token_type_ids"]}
                 with torch.no_grad():
                     outputs = model(**batch)
