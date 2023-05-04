@@ -169,8 +169,9 @@ def train(
     accelerator.wait_for_everyone()
     model_name = configs.model_configs.model_name_or_path.split("/")[-1]
     model.push_to_hub(
-        "aryopg/" + f"{model_name}_{peft_config.peft_type}_{peft_config.task_type}",
+        f"{model_name}_{peft_config.peft_type}_{peft_config.task_type}",
         state_dict=accelerator.get_state_dict(model),
+        private=True,
         use_auth_token=True,
     )
 
