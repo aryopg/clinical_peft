@@ -143,7 +143,7 @@ def train(
                 with torch.no_grad():
                     outputs = model(**batch)
                     loss = outputs.loss
-                    total_loss += loss.detach().float().item()
+                    total_loss += loss.detach().float()
             eval_loss = total_loss / len(eval_dataloader)
             eval_ppl = torch.exp(eval_loss)
             accelerator.print(f"{train_step=}: {eval_ppl.item()=} {eval_loss.item()=}")
