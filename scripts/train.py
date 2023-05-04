@@ -106,11 +106,13 @@ def train(
     (
         model,
         train_dataloader,
+        eval_dataloader,
         optimizer,
         lr_scheduler,
     ) = accelerator.prepare(
         model,
         train_dataloader,
+        eval_dataloader,
         optimizer,
         lr_scheduler,
     )
