@@ -2,7 +2,6 @@ import os
 
 import huggingface_hub
 import torch
-import wandb
 from accelerate import Accelerator
 from accelerate.tracking import WandBTracker
 from datasets import load_dataset
@@ -16,6 +15,8 @@ from transformers import (
     PreTrainedTokenizer,
     get_linear_schedule_with_warmup,
 )
+
+import wandb
 
 from .configs import Configs
 from .utils.dataset_utils import preprocess_dataset
