@@ -3,6 +3,7 @@ import os
 import huggingface_hub
 import torch
 from accelerate import Accelerator
+from accelerate.tracking import WandBTracker
 from datasets import load_dataset
 from peft import PeftConfig, get_peft_model
 from torch.utils.data import DataLoader
@@ -22,7 +23,7 @@ from .utils.model_utils import load_peft_config
 
 def train(
     configs: Configs,
-    wandb_tracker,
+    wandb_tracker: WandBTracker,
     accelerator: Accelerator,
     train_dataloader: DataLoader,
     eval_dataloader: DataLoader,
@@ -127,24 +128,10 @@ def train(
     accelerator.wait_for_everyone()
 
 
-def run_sweep(configs: Configs, outputs_dir: str, log_to_wandb: bool):
+def run_sweep(accelerator: Accelerator, configs: Configs, outputs_dir: str):
     # Instantiate Accelerator and Login to WandB
-    accelerator = Accelerator(
-        gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
-        log_with="wandb",
-    )
-    if accelerator.is_main_process:
-        accelerator.init_trackers(
-            project_name=os.getenv("WANDB_PROJECT_NAME", ""),
-            init_kwargs={
-                "wandb": {
-                    "entity": os.getenv("WANDB_ENTITY", ""),
-                    "mode": "online" if log_to_wandb else "disabled",
-                }
-            },
-        )
-    accelerator.wait_for_everyone()
-    wandb_tracker = accelerator.get_tracker("wandb")
+
+    wandb_tracker: WandBTracker = accelerator.get_tracker("wandb")
     print(wandb_tracker)
     print(wandb_tracker.config)
     r = wandb_tracker.config["r"]

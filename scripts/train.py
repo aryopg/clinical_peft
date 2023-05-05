@@ -10,6 +10,7 @@ load_dotenv("env/.env")
 
 import huggingface_hub
 import wandb
+from accelerate import Accelerator
 
 from clinical_peft.configs import Configs
 from clinical_peft.trainer import run_sweep
@@ -46,9 +47,27 @@ def main():
         entity=wandb_entity,
         project=wandb_project,
     )
+
+    # Instantiate Accelerator
+    accelerator = Accelerator(
+        gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
+        log_with="wandb",
+    )
+    if accelerator.is_main_process:
+        accelerator.init_trackers(
+            project_name=os.getenv("WANDB_PROJECT_NAME", ""),
+            init_kwargs={
+                "wandb": {
+                    "entity": os.getenv("WANDB_ENTITY", ""),
+                    "mode": "online" if args.log_to_wandb else "disabled",
+                }
+            },
+        )
+    accelerator.wait_for_everyone()
+
     wandb.agent(
         sweep_id,
-        function=run_sweep(configs, outputs_dir, args.log_to_wandb),
+        function=run_sweep(accelerator, configs, outputs_dir),
         count=configs.training_configs.max_sweep_count,
     )
 
