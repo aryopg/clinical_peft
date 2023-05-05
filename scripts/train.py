@@ -37,32 +37,33 @@ if __name__ == "__main__":
     # Login to HF
     huggingface_hub.login(token=os.getenv("HF_DOWNLOAD_TOKEN", ""))
 
-    sweep_configuration = configs.model_configs.peft_hyperparameters
-    print(sweep_configuration)
-
+    # Instantiate Accelerator and Login to WandB
     wandb_entity = os.getenv("WANDB_ENTITY", "")
     wandb_project = os.getenv("WANDB_PROJECT_NAME", "")
-    sweep_id = wandb.sweep(
-        sweep=sweep_configuration,
-        entity=wandb_entity,
-        project=wandb_project,
-    )
-
-    # Instantiate Accelerator
     accelerator = Accelerator(
         gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
         log_with="wandb",
     )
     if accelerator.is_main_process:
         accelerator.init_trackers(
-            project_name=os.getenv("WANDB_PROJECT_NAME", ""),
+            project_name=wandb_project,
             init_kwargs={
                 "wandb": {
-                    "entity": os.getenv("WANDB_ENTITY", ""),
+                    "entity": wandb_entity,
                 }
             },
         )
     accelerator.wait_for_everyone()
+
+    # Start sweep
+    sweep_configuration = configs.model_configs.peft_hyperparameters
+    print(sweep_configuration)
+
+    sweep_id = wandb.sweep(
+        sweep=sweep_configuration,
+        entity=wandb_entity,
+        project=wandb_project,
+    )
 
     wandb.agent(
         sweep_id,
