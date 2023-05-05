@@ -24,18 +24,17 @@ from .utils.model_utils import load_peft_config
 
 def train(
     configs: Configs,
-    wandb_configs: dict,
+    wandb_tracker: WandBTracker,
     accelerator: Accelerator,
     train_dataloader: DataLoader,
     eval_dataloader: DataLoader,
-    wandb_tracker: WandBTracker,
     outputs_dir: str,
 ):
     # Load Model
     peft_config: PeftConfig = load_peft_config(
         configs.model_configs.peft_type,
         configs.model_configs.task_type,
-        wandb_configs,
+        wandb_tracker.config,
     )
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -134,15 +133,10 @@ def run_sweep(accelerator: Accelerator, configs: Configs, outputs_dir: str):
     # Instantiate Accelerator and Login to WandB
 
     wandb_tracker: WandBTracker = accelerator.get_tracker("wandb")
-    print(wandb_tracker)
-    print(dir(wandb_tracker))
-    print(wandb_tracker.run)
-    print(wandb_tracker.tracker)
-    print(dir(wandb_tracker.run))
-    print(dir(wandb_tracker.tracker))
+    print(wandb_tracker.run.config)
+    print(wandb_tracker.run.config_static)
     print(wandb_tracker.tracker.config)
-    print(wandb.config)
-    r = wandb.config["r"]
+    print(wandb_tracker.tracker.config_static)
 
     # Load dataset
     # TODO: Allow multiple datasets load
@@ -178,10 +172,9 @@ def run_sweep(accelerator: Accelerator, configs: Configs, outputs_dir: str):
 
     train(
         configs,
-        wandb.config,
+        wandb_tracker.tracker,
         accelerator,
         train_dataloader,
         eval_dataloader,
-        wandb_tracker,
         outputs_dir,
     )
