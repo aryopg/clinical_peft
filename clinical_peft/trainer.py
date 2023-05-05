@@ -84,6 +84,7 @@ def train(
             train_loss = loss.detach().float()
             train_ppl = torch.exp(train_loss)
 
+        print("Training OK")
         if (
             train_step > training_steps
             or train_step % configs.training_configs.eval_steps == 0
@@ -112,6 +113,8 @@ def train(
                 step=train_step,
             )
 
+        print("Eval OK")
+
         if (
             train_step > training_steps
             or train_step % configs.training_configs.checkpoint_steps == 0
@@ -122,8 +125,9 @@ def train(
                 )
                 wandb_tracker.save(os.path.join(outputs_dir, "checkpoint"))
             accelerator.wait_for_everyone()
+        print("Checkpointing OK")
 
-        if train_step >= configs.training_configs.steps:
+        if train_step >= training_steps:
             break
 
     accelerator.wait_for_everyone()
