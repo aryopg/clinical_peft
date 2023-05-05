@@ -7,17 +7,16 @@ model_configs:
     metric:
       name: eval_ppl
       goal: minimize
-    optimizer:
-      parameters:
-        r:
-          min: 4
-          max: 16
-        lora_alpha:
-          min: 8
-          max: 32
-        lora_dropout: 
-          min: 0.0
-          max: 0.2
+    parameters:
+      r:
+        min: 4
+        max: 16
+      lora_alpha:
+        min: 8
+        max: 32
+      lora_dropout: 
+        min: 0.0
+        max: 0.2
   model_hyperparameters:
     learning_rate: 0.0003
     max_seq_len: 128
