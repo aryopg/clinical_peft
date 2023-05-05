@@ -42,7 +42,6 @@ class TrainingConfigs(BaseModel):
     test_size: float = 0.1
     steps: int = 1000000
     batch_size: int = 256
-    grad_accumulation_step: int = 1
     eval_steps: int = 1000
     checkpoint_steps: int = 1000
     max_sweep_count: int = 100

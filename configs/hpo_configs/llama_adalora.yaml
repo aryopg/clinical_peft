@@ -8,27 +8,36 @@ model_configs:
       name: eval_ppl
       goal: minimize
     parameters:
-      r:
-        values: [2, 4, 8, 16]
-      lora_alpha:
-        values: [4, 8, 16, 32]
-      lora_dropout: 
-        values: [0.0, 0.1, 0.2]
+      target_r:
+        values: [8]
+      init_r:
+        values: [12]
+      tinit:
+        values: [0]
+      tfinal:
+        values: [0]
+      deltaT:
+        values: [1]
+      beta1:
+        values: [0.85]
+      beta2:
+        values: [0.85]
+      orth_reg_weight:
+        values: [0.5]
   model_hyperparameters:
     learning_rate: 0.0003
     max_seq_len: 128
     gradient_accumulation_steps: 4
 training_configs:
   dataset_paths:
-    - aryopg/mini-mimic-iv
+    - aryopg/mimic-iv
   random_seed: 1234
   device: 0
   num_process: 8
   test_size: 0.1
   steps: 1000000
   batch_size: 10
-  grad_accumulation_step: 1
-  eval_steps: 1000
+  eval_steps: 100
   checkpoint_steps: 1000000  # Only checkpoint at the end
   max_sweep_count: 20
   outputs_dir: "outputs"

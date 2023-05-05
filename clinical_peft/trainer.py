@@ -47,10 +47,11 @@ def train(
     )
 
     # lr scheduler
+    training_steps = min(len(train_dataloader), configs.training_configs.steps)
     lr_scheduler = get_linear_schedule_with_warmup(
         optimizer=optimizer,
         num_warmup_steps=0,
-        num_training_steps=min(len(train_dataloader), configs.training_configs.steps),
+        num_training_steps=training_steps,
     )
 
     (
@@ -68,7 +69,7 @@ def train(
     )
 
     # Train
-    for train_step, batch in enumerate(tqdm(train_dataloader)):
+    for train_step, batch in enumerate(train_dataloader):
         model.train()
         # Manually remove token type ids
         with accelerator.accumulate(model):
@@ -81,17 +82,14 @@ def train(
             optimizer.zero_grad()
             train_loss = loss.detach().float()
             train_ppl = torch.exp(train_loss)
-            accelerator.print(
-                f"{train_step=}: {train_ppl.item()=} {train_loss.item()=}"
-            )
 
         if (
-            train_step > configs.training_configs.steps
+            train_step > training_steps
             or train_step % configs.training_configs.eval_steps == 0
         ):
             model.eval()
             total_loss = 0
-            for batch in tqdm(eval_dataloader):
+            for batch in eval_dataloader:
                 batch = {k: v for k, v in batch.items() if k not in ["token_type_ids"]}
                 with torch.no_grad():
                     outputs = model(**batch)
@@ -99,7 +97,9 @@ def train(
                     total_loss += loss.detach().float()
             eval_loss = total_loss / len(eval_dataloader)
             eval_ppl = torch.exp(eval_loss)
-            accelerator.print(f"{train_step=}: {eval_ppl.item()=} {eval_loss.item()=}")
+            accelerator.print(
+                f"{train_step=}: {train_ppl.item()=} - {train_loss.item()=} - {eval_ppl.item()=} - {eval_loss.item()=}"
+            )
             accelerator.log(
                 {
                     "train_loss": train_loss,
@@ -111,7 +111,7 @@ def train(
             )
 
         if (
-            train_step > configs.training_configs.steps
+            train_step > training_steps
             or train_step % configs.training_configs.checkpoint_steps == 0
         ):
             with accelerator.is_main_process:

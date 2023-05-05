@@ -20,7 +20,6 @@ training_configs:
   test_size: 0.1
   steps: 1000000
   batch_size: 8
-  grad_accumulation_step: 1
-  eval_steps: 1000
+  eval_steps: 100
   checkpoint_steps: 10000
   outputs_dir: "outputs"
