@@ -70,6 +70,7 @@ def train(
 
     # Train
     for train_step, batch in enumerate(train_dataloader):
+        print(f"Train Step {train_step}")
         model.train()
         # Manually remove token type ids
         with accelerator.accumulate(model):
@@ -89,7 +90,8 @@ def train(
         ):
             model.eval()
             total_loss = 0
-            for batch in eval_dataloader:
+            for eval_step, batch in enumerate(eval_dataloader):
+                print(f"Eval Step {eval_step}")
                 batch = {k: v for k, v in batch.items() if k not in ["token_type_ids"]}
                 with torch.no_grad():
                     outputs = model(**batch)
