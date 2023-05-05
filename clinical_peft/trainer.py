@@ -130,9 +130,13 @@ def train(
     accelerator.wait_for_everyone()
 
 
-def run_sweep(accelerator: Accelerator, configs: Configs, outputs_dir: str):
-    # Instantiate Accelerator and Login to WandB
-
+def run_sweep(
+    accelerator: Accelerator,
+    configs: Configs,
+    wandb_entity: str,
+    wandb_project: str,
+    outputs_dir: str,
+):
     wandb_tracker: WandBTracker = accelerator.get_tracker("wandb")
     print(wandb_tracker.tracker.config)
 

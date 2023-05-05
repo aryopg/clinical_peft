@@ -1,4 +1,5 @@
 import argparse
+import functools
 import os
 import sys
 
@@ -44,6 +45,7 @@ if __name__ == "__main__":
         gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
         log_with="wandb",
     )
+    # Initialise tracker
     if accelerator.is_main_process:
         accelerator.init_trackers(
             project_name=wandb_project,
@@ -67,6 +69,8 @@ if __name__ == "__main__":
 
     wandb.agent(
         sweep_id,
-        function=run_sweep(accelerator, configs, outputs_dir),
-        count=configs.training_configs.max_sweep_count,
+        function=functools.partial(
+            run_sweep, accelerator, configs, wandb_entity, wandb_project, outputs_dir
+        ),
+        count=10,
     )
