@@ -115,7 +115,7 @@ def train(
 
         print("Eval OK")
 
-        if (
+        if (train_step > 0) and (
             train_step > training_steps
             or train_step % configs.training_configs.checkpoint_steps == 0
         ):
