@@ -25,7 +25,7 @@ def argument_parser():
     return args
 
 
-if __name__ == "__main__":
+def main() -> None:
     args = argument_parser()
     configs = Configs(**common_utils.load_yaml(args.config_filepath))
 
@@ -44,7 +44,8 @@ if __name__ == "__main__":
 
     # Start sweep
     sweep_configuration = configs.model_configs.peft_hyperparameters
-    print(sweep_configuration)
+    model_name = configs.model_configs.model_name_or_path.split("/")[-1]
+    sweep_configuration["name"] = f"{model_name}__{configs.model_configs.peft_type}"
 
     sweep_id = wandb.sweep(
         sweep=sweep_configuration,
@@ -63,3 +64,7 @@ if __name__ == "__main__":
         ),
         count=configs.training_configs.max_sweep_count,
     )
+
+
+if __name__ == "__main__":
+    main()

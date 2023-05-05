@@ -9,14 +9,11 @@ model_configs:
       goal: minimize
     parameters:
       r:
-        min: 4
-        max: 16
+        values: [2, 4, 8, 16]
       lora_alpha:
-        min: 8
-        max: 32
+        values: [4, 8, 16, 32]
       lora_dropout: 
-        min: 0.0
-        max: 0.2
+        values: [0.0, 0.1, 0.2]
   model_hyperparameters:
     learning_rate: 0.0003
     max_seq_len: 128

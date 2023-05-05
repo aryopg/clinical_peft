@@ -1,6 +1,5 @@
 import os
 
-import huggingface_hub
 import torch
 from accelerate import Accelerator
 from accelerate.tracking import WandBTracker
@@ -16,8 +15,6 @@ from transformers import (
     get_linear_schedule_with_warmup,
 )
 
-import wandb
-
 from .configs import Configs
 from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config
@@ -30,7 +27,7 @@ def train(
     train_dataloader: DataLoader,
     eval_dataloader: DataLoader,
     outputs_dir: str,
-):
+) -> None:
     # Load Model
     peft_config: PeftConfig = load_peft_config(
         configs.model_configs.peft_type,
@@ -136,12 +133,13 @@ def run_sweep(
     wandb_entity: str,
     wandb_project: str,
     outputs_dir: str,
-):
+) -> None:
     # Initialise tracker
     if accelerator.is_main_process:
-        accelerator.init_trackers(project_name=wandb_project)
+        accelerator.init_trackers(
+            project_name=wandb_project, init_kwargs={"wandb": {"entity": wandb_entity}}
+        )
         wandb_tracker: WandBTracker = accelerator.get_tracker("wandb")
-        print(wandb_tracker.tracker.config)
     accelerator.wait_for_everyone()
 
     # Load dataset
