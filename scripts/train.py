@@ -9,9 +9,9 @@ from dotenv import load_dotenv
 load_dotenv("env/.env")
 
 import huggingface_hub
-import wandb
 from accelerate import Accelerator
 
+import wandb
 from clinical_peft.configs import Configs
 from clinical_peft.trainer import run_sweep
 from clinical_peft.utils import common_utils
@@ -25,7 +25,7 @@ def argument_parser():
     return args
 
 
-def main():
+if __name__ == "__main__":
     args = argument_parser()
     configs = Configs(**common_utils.load_yaml(args.config_filepath))
 
@@ -71,7 +71,3 @@ def main():
         function=run_sweep(accelerator, configs, outputs_dir),
         count=configs.training_configs.max_sweep_count,
     )
-
-
-if __name__ == "__main__":
-    main()
