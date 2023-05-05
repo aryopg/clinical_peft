@@ -134,10 +134,7 @@ def run_sweep(accelerator: Accelerator, configs: Configs, outputs_dir: str):
     # Instantiate Accelerator and Login to WandB
 
     wandb_tracker: WandBTracker = accelerator.get_tracker("wandb")
-    print(wandb_tracker.run.config)
-    print(wandb_tracker.run.config_static)
     print(wandb_tracker.tracker.config)
-    print(wandb_tracker.tracker.config_static)
 
     # Load dataset
     # TODO: Allow multiple datasets load

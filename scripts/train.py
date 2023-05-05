@@ -20,7 +20,6 @@ from clinical_peft.utils import common_utils
 def argument_parser():
     parser = argparse.ArgumentParser(description="Clinical PEFT")
     parser.add_argument("--config_filepath", type=str, required=True)
-    parser.add_argument("--log_to_wandb", action="store_true")
     args = parser.parse_args()
     return args
 
@@ -60,7 +59,6 @@ if __name__ == "__main__":
             init_kwargs={
                 "wandb": {
                     "entity": os.getenv("WANDB_ENTITY", ""),
-                    "mode": "online" if args.log_to_wandb else "disabled",
                 }
             },
         )
