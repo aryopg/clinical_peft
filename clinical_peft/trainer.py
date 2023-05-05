@@ -137,8 +137,12 @@ def run_sweep(
     wandb_project: str,
     outputs_dir: str,
 ):
-    wandb_tracker: WandBTracker = accelerator.get_tracker("wandb")
-    print(wandb_tracker.tracker.config)
+    # Initialise tracker
+    if accelerator.is_main_process:
+        accelerator.init_trackers(project_name=wandb_project)
+        wandb_tracker: WandBTracker = accelerator.get_tracker("wandb")
+        print(wandb_tracker.tracker.config)
+    accelerator.wait_for_everyone()
 
     # Load dataset
     # TODO: Allow multiple datasets load

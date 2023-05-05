@@ -41,21 +41,6 @@ if __name__ == "__main__":
     # Instantiate Accelerator and Login to WandB
     wandb_entity = os.getenv("WANDB_ENTITY", "")
     wandb_project = os.getenv("WANDB_PROJECT_NAME", "")
-    accelerator = Accelerator(
-        gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
-        log_with="wandb",
-    )
-    # Initialise tracker
-    if accelerator.is_main_process:
-        accelerator.init_trackers(
-            project_name=wandb_project,
-            init_kwargs={
-                "wandb": {
-                    "entity": wandb_entity,
-                }
-            },
-        )
-    accelerator.wait_for_everyone()
 
     # Start sweep
     sweep_configuration = configs.model_configs.peft_hyperparameters
@@ -67,10 +52,14 @@ if __name__ == "__main__":
         project=wandb_project,
     )
 
+    accelerator = Accelerator(
+        gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
+        log_with="wandb",
+    )
     wandb.agent(
         sweep_id,
         function=functools.partial(
             run_sweep, accelerator, configs, wandb_entity, wandb_project, outputs_dir
         ),
-        count=10,
+        count=configs.training_configs.max_sweep_count,
     )
