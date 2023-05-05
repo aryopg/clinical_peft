@@ -123,7 +123,9 @@ def train(
                 accelerator.save_state(
                     output_dir=os.path.join(outputs_dir, "checkpoint")
                 )
+                print("Local checkpointing OK")
                 wandb_tracker.save(os.path.join(outputs_dir, "checkpoint"))
+                print("WandB checkpointing OK")
             accelerator.wait_for_everyone()
         print("Checkpointing OK")
 
