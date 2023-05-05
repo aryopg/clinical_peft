@@ -38,7 +38,6 @@ def main():
     huggingface_hub.login(token=os.getenv("HF_DOWNLOAD_TOKEN", ""))
 
     sweep_configuration = configs.model_configs.peft_hyperparameters
-    print(sweep_configuration)
 
     wandb_entity = os.getenv("WANDB_ENTITY", "")
     wandb_project = os.getenv("WANDB_PROJECT_NAME", "")
@@ -48,7 +47,9 @@ def main():
         project=wandb_project,
     )
     wandb.agent(
-        sweep_id, function=run_sweep, count=configs.training_configs.max_sweep_count
+        sweep_id,
+        function=run_sweep(configs, outputs_dir, args.log_to_wandb),
+        count=configs.training_configs.max_sweep_count,
     )
 
 
