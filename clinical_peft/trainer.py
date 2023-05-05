@@ -119,6 +119,9 @@ def train(
             train_step > training_steps
             or train_step % configs.training_configs.checkpoint_steps == 0
         ):
+            checkpoint_dir = os.path.join(outputs_dir, "checkpoint")
+            print(f"Checkpointing to {checkpoint_dir}...")
+            print(os.path.isdir(checkpoint_dir))
             with accelerator.is_main_process:
                 accelerator.save_state(
                     output_dir=os.path.join(outputs_dir, "checkpoint")
