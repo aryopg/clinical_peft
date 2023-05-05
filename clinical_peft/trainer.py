@@ -70,7 +70,6 @@ def train(
 
     # Train
     for train_step, batch in enumerate(train_dataloader):
-        print(f"Train Step {train_step}")
         model.train()
         # Manually remove token type ids
         with accelerator.accumulate(model):
@@ -84,7 +83,6 @@ def train(
             train_loss = loss.detach().float()
             train_ppl = torch.exp(train_loss)
 
-        print("Training OK")
         if (
             train_step > training_steps
             or train_step % configs.training_configs.eval_steps == 0
@@ -92,7 +90,6 @@ def train(
             model.eval()
             total_loss = 0
             for eval_step, batch in enumerate(eval_dataloader):
-                print(f"Eval Step {eval_step}")
                 batch = {k: v for k, v in batch.items() if k not in ["token_type_ids"]}
                 with torch.no_grad():
                     outputs = model(**batch)
@@ -113,27 +110,12 @@ def train(
                 step=train_step,
             )
 
-        print("Eval OK")
-
-        if (train_step > 0) and (
-            train_step > training_steps
-            or train_step % configs.training_configs.checkpoint_steps == 0
-        ):
-            checkpoint_dir = os.path.join(outputs_dir, "checkpoint")
-            print(f"Checkpointing to {checkpoint_dir}...")
-            print(os.path.isdir(checkpoint_dir))
-            with accelerator.is_main_process:
-                accelerator.save_state(
-                    output_dir=os.path.join(outputs_dir, "checkpoint")
-                )
-                print("Local checkpointing OK")
-                wandb_tracker.save(os.path.join(outputs_dir, "checkpoint"))
-                print("WandB checkpointing OK")
-            accelerator.wait_for_everyone()
-        print("Checkpointing OK")
-
         if train_step >= training_steps:
             break
+
+    with accelerator.is_main_process:
+        accelerator.save_state(output_dir=os.path.join(outputs_dir, "checkpoint"))
+        wandb_tracker.save(os.path.join(outputs_dir, "checkpoint"))
 
     accelerator.wait_for_everyone()
 
