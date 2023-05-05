@@ -1,5 +1,6 @@
 import os
 
+import huggingface_hub
 import torch
 from accelerate import Accelerator
 from accelerate.tracking import WandBTracker
@@ -16,6 +17,7 @@ from transformers import (
 )
 
 from .configs import Configs
+from .utils.common_utils import delete_files_in_directory
 from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config
 
@@ -114,8 +116,31 @@ def train(
             break
 
     with accelerator.is_main_process:
-        accelerator.save_state(output_dir=os.path.join(outputs_dir, "checkpoint"))
-        wandb_tracker.save(os.path.join(outputs_dir, "checkpoint"))
+        # accelerator.save_state(output_dir=os.path.join(outputs_dir, "checkpoint"))
+        # wandb_tracker.save(os.path.join(outputs_dir, "checkpoint"))
+
+        # # Clean up state files to not fill in the memory
+        # delete_files_in_directory(os.path.join(outputs_dir, "checkpoint"))
+
+        hf_username = os.getenv("HF_USERNAME")
+        hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
+        model_name = configs.model_configs.model_name_or_path.split("/")[-1]
+        hyperparams = []
+        for key, value in wandb_tracker.config.items():
+            hyperparams += [f"{key}_{value}"]
+        hyperparams = "__".join(hyperparams)
+        hf_repo_name = (
+            f"{hf_username}/{model_name}__{peft_config.peft_type}__{hyperparams}"
+        )
+        huggingface_hub.create_repo(
+            hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
+        )
+        model.push_to_hub(
+            hf_repo_name,
+            state_dict=accelerator.get_state_dict(model),
+            private=True,
+            use_auth_token=hf_upload_token,
+        )
 
     accelerator.wait_for_everyone()
 
