@@ -33,5 +33,6 @@ training_configs:
   batch_size: 10
   grad_accumulation_step: 1
   eval_steps: 1000
-  checkpoint_steps: 10000
+  checkpoint_steps: 1000000  # Only checkpoint at the end
+  max_sweep_count: 20
   outputs_dir: "outputs"

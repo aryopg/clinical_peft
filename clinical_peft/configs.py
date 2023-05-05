@@ -45,6 +45,7 @@ class TrainingConfigs(BaseModel):
     grad_accumulation_step: int = 1
     eval_steps: int = 1000
     checkpoint_steps: int = 1000
+    max_sweep_count: int = 100
     outputs_dir: str = "outputs"
 
 
