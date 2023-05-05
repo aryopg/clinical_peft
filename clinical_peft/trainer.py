@@ -2,6 +2,7 @@ import os
 
 import huggingface_hub
 import torch
+import wandb
 from accelerate import Accelerator
 from accelerate.tracking import WandBTracker
 from datasets import load_dataset
@@ -23,17 +24,18 @@ from .utils.model_utils import load_peft_config
 
 def train(
     configs: Configs,
-    wandb_tracker: WandBTracker,
+    wandb_configs: dict,
     accelerator: Accelerator,
     train_dataloader: DataLoader,
     eval_dataloader: DataLoader,
+    wandb_tracker: WandBTracker,
     outputs_dir: str,
 ):
     # Load Model
     peft_config: PeftConfig = load_peft_config(
         configs.model_configs.peft_type,
         configs.model_configs.task_type,
-        wandb_tracker.configs,
+        wandb_configs,
     )
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -133,8 +135,8 @@ def run_sweep(accelerator: Accelerator, configs: Configs, outputs_dir: str):
 
     wandb_tracker: WandBTracker = accelerator.get_tracker("wandb")
     print(wandb_tracker)
-    print(wandb_tracker.config)
-    r = wandb_tracker.config["r"]
+    print(wandb.config)
+    r = wandb.config["r"]
 
     # Load dataset
     # TODO: Allow multiple datasets load
@@ -170,9 +172,10 @@ def run_sweep(accelerator: Accelerator, configs: Configs, outputs_dir: str):
 
     train(
         configs,
-        wandb_tracker,
+        wandb.config,
         accelerator,
         train_dataloader,
         eval_dataloader,
+        wandb_tracker,
         outputs_dir,
     )
