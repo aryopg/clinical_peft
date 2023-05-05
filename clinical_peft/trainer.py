@@ -115,6 +115,8 @@ def train(
         if train_step >= training_steps:
             break
 
+    accelerator.wait_for_everyone()
+
     with accelerator.is_main_process:
         # accelerator.save_state(output_dir=os.path.join(outputs_dir, "checkpoint"))
         # wandb_tracker.save(os.path.join(outputs_dir, "checkpoint"))
@@ -123,12 +125,16 @@ def train(
         # delete_files_in_directory(os.path.join(outputs_dir, "checkpoint"))
 
         hf_username = os.getenv("HF_USERNAME")
+        print(hf_username)
         hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
+        print(hf_upload_token)
         model_name = configs.model_configs.model_name_or_path.split("/")[-1]
+        print(model_name)
         hyperparams = []
         for key, value in wandb_tracker.config.items():
             hyperparams += [f"{key}_{value}"]
         hyperparams = "__".join(hyperparams)
+        print(hyperparams)
         hf_repo_name = (
             f"{hf_username}/{model_name}__{peft_config.peft_type}__{hyperparams}"
         )
