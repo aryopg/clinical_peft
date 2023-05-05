@@ -132,9 +132,11 @@ def train(
         hf_repo_name = (
             f"{hf_username}/{model_name}__{peft_config.peft_type}__{hyperparams}"
         )
+        print(f"Creating a repo {hf_repo_name}")
         huggingface_hub.create_repo(
             hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
         )
+        print(f"Pushing to repo {hf_repo_name}")
         model.push_to_hub(
             hf_repo_name,
             state_dict=accelerator.get_state_dict(model),
