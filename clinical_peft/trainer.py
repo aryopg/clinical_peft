@@ -135,6 +135,11 @@ def run_sweep(accelerator: Accelerator, configs: Configs, outputs_dir: str):
 
     wandb_tracker: WandBTracker = accelerator.get_tracker("wandb")
     print(wandb_tracker)
+    print(dir(wandb_tracker))
+    print(wandb_tracker.run)
+    print(wandb_tracker.tracker)
+    print(dir(wandb_tracker.run))
+    print(dir(wandb_tracker.tracker))
     print(wandb.config)
     r = wandb.config["r"]
 
