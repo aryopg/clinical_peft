@@ -125,22 +125,18 @@ def train(
     # delete_files_in_directory(os.path.join(outputs_dir, "checkpoint"))
 
     hf_username = os.getenv("HF_USERNAME")
-    print(hf_username)
     hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
-    print(hf_upload_token)
     model_name = configs.model_configs.model_name_or_path.split("/")[-1]
-    print(model_name)
     hyperparams = []
     for key, value in wandb_tracker.config.items():
         hyperparams += [f"{key}_{value}"]
     hyperparams = "__".join(hyperparams)
-    print(hyperparams)
+
     hf_repo_name = f"{hf_username}/{model_name}__{peft_config.peft_type}__{hyperparams}"
-    print(f"Creating a repo {hf_repo_name}")
+
     huggingface_hub.create_repo(
         hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
     )
-    print(f"Pushing to repo {hf_repo_name}")
     model.push_to_hub(
         hf_repo_name,
         state_dict=accelerator.get_state_dict(model),
