@@ -92,6 +92,13 @@ def train(
             accelerator.print(
                 f"{train_step=}/{training_steps}: {train_ppl.item()=} - {train_loss.item()=}"
             )
+            accelerator.log(
+                {
+                    "train_loss": train_loss,
+                    "train_ppl": train_ppl,
+                },
+                step=train_step,
+            )
 
         if (
             train_step > training_steps
