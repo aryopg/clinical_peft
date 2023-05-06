@@ -87,6 +87,14 @@ def train(
 
         if (
             train_step > training_steps
+            or train_step % configs.training_configs.log_steps == 0
+        ):
+            accelerator.print(
+                f"{train_step=}/{training_steps}: {train_ppl.item()=} - {train_loss.item()=}"
+            )
+
+        if (
+            train_step > training_steps
             or train_step % configs.training_configs.eval_steps == 0
         ):
             model.eval()
@@ -100,7 +108,7 @@ def train(
             eval_loss = total_loss / len(eval_dataloader)
             eval_ppl = torch.exp(eval_loss)
             accelerator.print(
-                f"{train_step=}: {train_ppl.item()=} - {train_loss.item()=} - {eval_ppl.item()=} - {eval_loss.item()=}"
+                f"{train_step=}/{training_steps}: {train_ppl.item()=} - {train_loss.item()=} - {eval_ppl.item()=} - {eval_loss.item()=}"
             )
             accelerator.log(
                 {
