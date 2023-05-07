@@ -86,9 +86,8 @@ def train(
             train_ppl = torch.exp(train_loss)
 
         if (
-            train_step > training_steps
-            or train_step % configs.training_configs.log_steps == 0
-        ):
+            train_step + 1
+        ) >= training_steps or train_step % configs.training_configs.log_steps == 0:
             accelerator.print(
                 f"{train_step=}/{training_steps}: {train_ppl.item()=} - {train_loss.item()=}"
             )
@@ -101,9 +100,8 @@ def train(
             )
 
         if (
-            train_step > training_steps
-            or train_step % configs.training_configs.eval_steps == 0
-        ):
+            train_step + 1
+        ) >= training_steps or train_step % configs.training_configs.eval_steps == 0:
             model.eval()
             total_loss = 0
             for eval_step, batch in enumerate(eval_dataloader):
@@ -127,7 +125,7 @@ def train(
                 step=train_step,
             )
 
-        if train_step >= training_steps:
+        if (train_step + 1) >= training_steps:
             break
 
     accelerator.wait_for_everyone()
