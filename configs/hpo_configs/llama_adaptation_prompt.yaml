@@ -9,9 +9,9 @@ model_configs:
       goal: minimize
     parameters:
       adapter_len:
-        values: []
+        values: [5, 10]
       adapter_layers: 
-        values: []
+        values: [10, 20, 30]
   model_hyperparameters:
     learning_rate: 0.0003
     max_seq_len: 128
