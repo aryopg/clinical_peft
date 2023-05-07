@@ -1,5 +1,5 @@
 model_configs:
-  peft_type: "lora"
+  peft_type: "prompt_tuning"
   task_type: "causal_lm"
   model_name_or_path: "aryopg/llama-7b"
   peft_hyperparameters:
