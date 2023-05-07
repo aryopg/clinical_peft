@@ -8,22 +8,12 @@ model_configs:
       name: eval_ppl
       goal: minimize
     parameters:
-      target_r:
-        values: [8]
-      init_r:
-        values: [12]
       tinit:
-        values: [0]
+        values: [0, 600, 2000]
       tfinal:
-        values: [0]
+        values: [0, 8000, 25000, 50000]
       deltaT:
-        values: [1]
-      beta1:
-        values: [0.85]
-      beta2:
-        values: [0.85]
-      orth_reg_weight:
-        values: [0.5]
+        values: [1, 10, 100]
   model_hyperparameters:
     learning_rate: 0.0003
     max_seq_len: 128
