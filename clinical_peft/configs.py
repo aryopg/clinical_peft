@@ -14,6 +14,7 @@ class PEFTType(str, Enum):
     prefix_tuning = "prefix_tuning"
     p_tuning = "p_tuning"
     prompt_tuning = "prompt_tuning"
+    adaptation_prompt_tuning = "adaptation_prompt_tuning"
     adalora = "adalora"
 
 
