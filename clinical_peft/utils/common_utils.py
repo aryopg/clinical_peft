@@ -123,3 +123,13 @@ def save_training_configs(configs: Configs, output_dir: str):
     filepath = os.path.join(output_dir, "configs.yaml")
     with open(filepath, "w") as file:
         _ = yaml.dump(configs.dict(), file)
+
+
+def delete_files_in_directory(directory: str):
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            print(f"Failed to delete {file_path} due to {e}")
