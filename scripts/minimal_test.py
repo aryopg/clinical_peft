@@ -70,7 +70,7 @@ peft_config = PrefixTuningConfig(
 huggingface_hub.login(token=os.getenv("HF_DOWNLOAD_TOKEN", ""))
 
 model = AutoModelForCausalLM.from_pretrained("aryopg/llama-7b")
-peft_model = get_peft_model(model, peft_config)
+model = get_peft_model(model, peft_config)
 model.print_trainable_parameters()
 
 accelerator = Accelerator(
