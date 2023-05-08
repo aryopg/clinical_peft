@@ -13,7 +13,7 @@ import huggingface_hub
 import torch
 from accelerate import Accelerator
 from datasets import load_dataset
-from peft import PrefixTuningConfig, TaskType, get_peft_model
+from peft import PromptTuningConfig, TaskType, get_peft_model
 from torch.utils.data import DataLoader
 from transformers import (
     AutoModelForCausalLM,
@@ -52,16 +52,12 @@ def preprocess_dataset(
 
 
 peft_hyperparameters = {
-    "encoder_hidden_size": 512,
-    "num_attention_heads": 12,
-    "num_layers": 1,
-    "num_transformer_submodules": 1,
-    "num_virtual_tokens": 1,
-    "prefix_projection": False,
-    "token_dim": 768,
+    "prompt_tuning_init": "TEXT",
+    "prompt_tuning_init_text": "Finish this clinical note",
+    "tokenizer_name_or_path": "aryopg/llama-7b",
 }
 
-peft_config = PrefixTuningConfig(
+peft_config = PromptTuningConfig(
     task_type=TaskType.CAUSAL_LM,
     inference_mode=False,
     **peft_hyperparameters,
