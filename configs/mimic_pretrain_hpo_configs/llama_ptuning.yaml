@@ -1,5 +1,5 @@
 model_configs:
-  peft_type: "prompt_tuning"
+  peft_type: "p_tuning"
   task_type: "causal_lm"
   model_name_or_path: "aryopg/llama-7b"
   peft_hyperparameters:
@@ -8,12 +8,24 @@ model_configs:
       name: eval_ppl
       goal: minimize
     parameters:
-      prompt_tuning_init:
-        values: []
-      prompt_tuning_init_text:
-        values: []
-      tokenizer_name_or_path:
-        values: []
+      encoder_reparameterization_type:
+        values: ["MLP", "LSTM"]
+      num_virtual_tokens:
+        values: [1, 10, 20]
+      token_dim:
+        values: [768]
+      num_transformer_submodules:
+        values: [1]
+      num_attention_heads:
+        values: [12]
+      num_layers:
+        values: [1, 2, 4, 8, 12]
+      encoder_hidden_size: 
+        values: [64, 128, 256, 768]
+      encoder_num_layers:
+        values: [1, 2, 4, 8, 12]
+      encoder_dropout: 
+        values: [0.0, 0.1, 0.2]
   model_hyperparameters:
     learning_rate: 0.0003
     max_seq_len: 128

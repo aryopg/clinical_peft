@@ -1,5 +1,5 @@
 model_configs:
-  peft_type: "adalora"
+  peft_type: "prefix_tuning"
   task_type: "causal_lm"
   model_name_or_path: "aryopg/llama-7b"
   peft_hyperparameters:
@@ -8,12 +8,20 @@ model_configs:
       name: eval_ppl
       goal: minimize
     parameters:
-      tinit:
-        values: [0, 600, 2000]
-      tfinal:
-        values: [0, 8000, 25000, 50000]
-      deltaT:
-        values: [1, 10, 100]
+      num_virtual_tokens:
+        values: [1, 10, 20]
+      token_dim:
+        values: [768]
+      num_transformer_submodules:
+        values: [1]
+      num_attention_heads:
+        values: [12]
+      num_layers:
+        values: [1, 2, 4, 8, 12]
+      encoder_hidden_size:
+        values: [768, 512, 256]
+      prefix_projection:
+        values: [true, false]
   model_hyperparameters:
     learning_rate: 0.0003
     max_seq_len: 128
