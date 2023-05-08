@@ -13,7 +13,7 @@ import huggingface_hub
 import torch
 from accelerate import Accelerator
 from datasets import load_dataset
-from peft import PromptTuningConfig, TaskType, get_peft_model
+from peft import PromptEncoderConfig, TaskType, get_peft_model
 from torch.utils.data import DataLoader
 from transformers import (
     AutoModelForCausalLM,
@@ -59,7 +59,7 @@ peft_hyperparameters = {
     "num_virtual_tokens": 10,
 }
 
-peft_config = PromptTuningConfig(
+peft_config = PromptEncoderConfig(
     task_type=TaskType.CAUSAL_LM,
     inference_mode=False,
     **peft_hyperparameters,
