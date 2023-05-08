@@ -52,11 +52,11 @@ def preprocess_dataset(
 
 
 peft_hyperparameters = {
+    "encoder_dropout": 0.1,
+    "encoder_hidden_size": 768,
+    "encoder_num_layers": 8,
+    "encoder_reparameterization_type": "LSTM",
     "num_virtual_tokens": 10,
-    "prefix_projection": True,
-    "prompt_tuning_init": "TEXT",
-    "prompt_tuning_init_text": "Finish this clinical note",
-    "tokenizer_name_or_path": "aryopg/llama-7b",
 }
 
 peft_config = PromptTuningConfig(
