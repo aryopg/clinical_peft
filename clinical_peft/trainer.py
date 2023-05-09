@@ -99,9 +99,10 @@ def train(
                 step=train_step,
             )
 
-        if (
-            train_step + 1
-        ) >= training_steps or train_step % configs.training_configs.eval_steps == 0:
+        if train_step > 0 and (
+            (train_step + 1) >= training_steps
+            or train_step % configs.training_configs.eval_steps == 0
+        ):
             model.eval()
             total_loss = 0
             for eval_step, batch in enumerate(eval_dataloader):
