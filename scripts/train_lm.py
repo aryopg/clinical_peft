@@ -66,6 +66,8 @@ def main() -> None:
         function=functools.partial(
             run_sweep, accelerator, configs, wandb_entity, wandb_project, outputs_dir
         ),
+        entity=wandb_entity,
+        project=wandb_project,
         count=configs.training_configs.max_sweep_count,
     )
 
