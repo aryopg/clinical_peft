@@ -1,5 +1,6 @@
 import os
 
+import evaluate
 import huggingface_hub
 import torch
 from accelerate import Accelerator
@@ -10,6 +11,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import (
     AutoModelForCausalLM,
+    AutoModelForSequenceClassification,
     AutoTokenizer,
     DataCollatorForLanguageModeling,
     PreTrainedTokenizer,
@@ -37,9 +39,17 @@ def train(
         wandb_tracker.config,
     )
 
-    model = AutoModelForCausalLM.from_pretrained(
-        configs.model_configs.model_name_or_path
-    )
+    if configs.model_configs.task_type == "causal_lm":
+        model = AutoModelForCausalLM.from_pretrained(
+            configs.model_configs.model_name_or_path
+        )
+    elif configs.model_configs.task_type == "seq_cls":
+        model = AutoModelForSequenceClassification.from_pretrained(
+            configs.model_configs.model_name_or_path
+        )
+        roc_auc_metric = evaluate.load("roc_auc")
+        f1_metric = evaluate.load("f1")
+
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
 
@@ -82,8 +92,14 @@ def train(
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
-            train_loss = loss.detach().float()
-            train_ppl = torch.exp(train_loss)
+
+            if configs.model_configs.task_type == "causal_lm":
+                train_loss = loss.detach().float()
+                train_ppl = torch.exp(train_loss)
+            elif configs.model_configs.task_type == "seq_cls":
+                roc_auc = roc_auc_metric.compute(predictions, references)
+                f1_micro = f1_metric.compute(predictions, references, average="micro")
+                f1_macro = f1_metric.compute(predictions, references, average="macro")
 
         if (
             train_step + 1
