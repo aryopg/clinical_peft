@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Dict, List, Optional
 
 import evaluate
@@ -33,6 +34,7 @@ def train(
     train_dataloader: DataLoader,
     val_dataloader: Optional[DataLoader] = None,
     test_dataloader: Optional[DataLoader] = None,
+    sweep_name: str = None,
 ) -> None:
     # Load Model
     peft_config: PeftConfig = load_peft_config(
@@ -85,7 +87,7 @@ def train(
     )
 
     # Train
-    for train_step, batch in enumerate(train_dataloader):
+    for train_step, batch in enumerate(tqdm(train_dataloader)):
         model.train()
         # Manually remove token type ids
         with accelerator.accumulate(model):
@@ -182,13 +184,12 @@ def train(
 
     hf_username = os.getenv("HF_USERNAME")
     hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
-    model_name = configs.model_configs.model_name_or_path.split("/")[-1]
     hyperparams = []
     for key, value in wandb_tracker.config.items():
         hyperparams += [f"{key}_{value}"]
     hyperparams = "__".join(hyperparams)
 
-    hf_repo_name = f"{hf_username}/{model_name}__{peft_config.peft_type}__{hyperparams}"
+    hf_repo_name = f"{hf_username}/{sweep_name}__{hyperparams}"
 
     huggingface_hub.create_repo(
         hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
@@ -201,7 +202,7 @@ def train(
     )
 
     accelerator.wait_for_everyone()
-    
+
     # cleanup and sleep just to be sure the cuda memory is freed
     del model
     torch.cuda.empty_cache()
@@ -219,7 +220,7 @@ def test(
     model.eval()
     total_loss = 0
     samples_seen = 0
-    for eval_step, batch in enumerate(dataloader):
+    for eval_step, batch in enumerate(tqdm(dataloader)):
         batch = {k: v for k, v in batch.items() if k not in ["token_type_ids"]}
         with torch.no_grad():
             outputs = model(**batch)
@@ -262,6 +263,7 @@ def run_sweep(
     configs: Configs,
     wandb_entity: str,
     wandb_project: str,
+    sweep_name: str,
 ) -> None:
     # Initialise tracker
     if accelerator.is_main_process:
@@ -299,15 +301,15 @@ def run_sweep(
         batch_size=configs.training_configs.batch_size,
         pin_memory=True,
     )
-    if "val" in dataset:
+    if "validation" in dataset:
         val_dataloader = DataLoader(
-            dataset["val"],
+            dataset["validation"],
             shuffle=True,
             collate_fn=data_collator,
             batch_size=configs.training_configs.batch_size,
             pin_memory=True,
         )
-    if configs.training_configs.test_size > 0:
+    if configs.training_configs.test_size > 0 or "test" in dataset:
         test_dataloader = DataLoader(
             dataset["test"],
             shuffle=True,
@@ -323,4 +325,5 @@ def run_sweep(
         train_dataloader,
         val_dataloader,
         test_dataloader,
+        sweep_name,
     )

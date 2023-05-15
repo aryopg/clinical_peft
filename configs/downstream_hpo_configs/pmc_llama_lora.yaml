@@ -1,22 +1,18 @@
 model_configs:
-  peft_type: "p_tuning"
-  task_type: "causal_lm"
+  peft_type: "lora"
+  task_type: "seq_cls"
   model_name_or_path: "chaoyi-wu/PMC_LLAMA_7B"
   peft_hyperparameters:
     method: bayes
     metric:
-      name: eval_ppl
-      goal: minimize
+      name: roc_auc
+      goal: maximize
     parameters:
-      num_virtual_tokens:
-        values: [1, 5, 10, 15, 20]
-      encoder_reparameterization_type:
-        values: ["MLP", "LSTM"]
-      encoder_hidden_size: 
-        values: [64, 128, 256, 768]
-      encoder_num_layers:
-        values: [1, 2, 4, 8, 12]
-      encoder_dropout: 
+      r:
+        values: [2, 4, 8, 16]
+      lora_alpha:
+        values: [4, 8, 16, 32]
+      lora_dropout: 
         values: [0.0, 0.1, 0.2]
   model_hyperparameters:
     learning_rate: 0.0003
@@ -24,15 +20,15 @@ model_configs:
     gradient_accumulation_steps: 4
 training_configs:
   dataset_paths:
-    - aryopg/mimic-iv
+    - aryopg/trec-mortality
   random_seed: 1234
   device: 0
   num_process: 8
   test_size: 0.1
   steps: 1000000
   batch_size: 10
-  log_steps: 100
-  eval_steps: 1000000
+  log_steps: 1
+  eval_steps: 1  # Only evaluate at the end
   checkpoint_steps: 1000000  # Only checkpoint at the end
-  max_sweep_count: 20
+  max_sweep_count: 1
   outputs_dir: "outputs"

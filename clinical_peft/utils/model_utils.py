@@ -1,7 +1,7 @@
 from peft import PeftConfig
 
-from clinical_peft.configs import ModelConfigs, PEFTTaskType
-from clinical_peft.constants import PEFT_CONFIGS, TASK_TYPE
+from ..configs import PEFTTaskType
+from ..constants import PEFT_CONFIGS, TASK_TYPE
 
 
 def load_peft_config(

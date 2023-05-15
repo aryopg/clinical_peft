@@ -21,6 +21,7 @@ from clinical_peft.utils import common_utils
 def argument_parser():
     parser = argparse.ArgumentParser(description="Clinical PEFT")
     parser.add_argument("--config_filepath", type=str, required=True)
+    parser.add_argument("--existing_sweep_id", type=str, default="")
     args = parser.parse_args()
     return args
 
@@ -44,14 +45,19 @@ def main() -> None:
 
     # Start sweep
     sweep_configuration = configs.model_configs.peft_hyperparameters
+    dataset_name = configs.training_configs.dataset_paths[0].split("/")[-1]
     model_name = configs.model_configs.model_name_or_path.split("/")[-1]
-    sweep_configuration["name"] = f"{model_name}__{configs.model_configs.peft_type}"
+    sweep_name = f"{dataset_name}__{model_name}__{configs.model_configs.peft_type}"
+    sweep_configuration["name"] = sweep_name
 
-    sweep_id = wandb.sweep(
-        sweep=sweep_configuration,
-        entity=wandb_entity,
-        project=wandb_project,
-    )
+    if len(args.existing_sweep_id) > 0:
+        sweep_id = args.existing_sweep_id
+    else:
+        sweep_id = wandb.sweep(
+            sweep=sweep_configuration,
+            entity=wandb_entity,
+            project=wandb_project,
+        )
 
     accelerator = Accelerator(
         gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
@@ -60,8 +66,15 @@ def main() -> None:
     wandb.agent(
         sweep_id,
         function=functools.partial(
-            run_sweep, accelerator, configs, wandb_entity, wandb_project, outputs_dir
+            run_sweep,
+            accelerator,
+            configs,
+            wandb_entity,
+            wandb_project,
+            sweep_name,
         ),
+        entity=wandb_entity,
+        project=wandb_project,
         count=configs.training_configs.max_sweep_count,
     )
 

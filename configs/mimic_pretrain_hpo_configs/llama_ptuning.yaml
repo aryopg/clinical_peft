@@ -9,7 +9,7 @@ model_configs:
       goal: minimize
     parameters:
       num_virtual_tokens:
-        values: [1, 10, 20]
+        values: [1, 5, 10, 15, 20]
       encoder_reparameterization_type:
         values: ["MLP", "LSTM"]
       encoder_hidden_size: 

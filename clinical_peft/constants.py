@@ -8,7 +8,7 @@ from peft import (
     TaskType,
 )
 
-TASK_TYPE = {"causal_lm": TaskType.CAUSAL_LM}
+TASK_TYPE = {"causal_lm": TaskType.CAUSAL_LM, "seq_cls": TaskType.SEQ_CLS}
 PEFT_CONFIGS = {
     "lora": LoraConfig,
     "prefix_tuning": PrefixTuningConfig,

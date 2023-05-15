@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class PEFTTaskType(str, Enum):
     causal_lm = "causal_lm"
     seq2seq_lm = "seq2seq_lm"
+    seq_cls = "seq_cls"
 
 
 class PEFTType(str, Enum):
