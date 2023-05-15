@@ -175,6 +175,11 @@ def train(
     )
 
     accelerator.wait_for_everyone()
+    
+    # cleanup and sleep just to be sure the cuda memory is freed
+    del model
+    torch.cuda.empty_cache()
+    time.sleep(10)
 
 
 def run_sweep(
