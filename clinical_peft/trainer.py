@@ -1,4 +1,5 @@
 import os
+from typing import Dict, List, Optional
 
 import evaluate
 import huggingface_hub
@@ -6,7 +7,8 @@ import torch
 from accelerate import Accelerator
 from accelerate.tracking import WandBTracker
 from datasets import load_dataset
-from peft import PeftConfig, get_peft_model
+from evaluate import EvaluationModule
+from peft import PeftConfig, PeftModel, get_peft_model
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import (
@@ -18,7 +20,7 @@ from transformers import (
     get_linear_schedule_with_warmup,
 )
 
-from .configs import Configs
+from .configs import Configs, PEFTTaskType
 from .utils.common_utils import delete_files_in_directory
 from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config
@@ -29,8 +31,8 @@ def train(
     wandb_tracker: WandBTracker,
     accelerator: Accelerator,
     train_dataloader: DataLoader,
-    eval_dataloader: DataLoader,
-    outputs_dir: str,
+    val_dataloader: Optional[DataLoader] = None,
+    test_dataloader: Optional[DataLoader] = None,
 ) -> None:
     # Load Model
     peft_config: PeftConfig = load_peft_config(
@@ -39,11 +41,11 @@ def train(
         wandb_tracker.config,
     )
 
-    if configs.model_configs.task_type == "causal_lm":
+    if configs.model_configs.task_type == PEFTTaskType.causal_lm:
         model = AutoModelForCausalLM.from_pretrained(
             configs.model_configs.model_name_or_path
         )
-    elif configs.model_configs.task_type == "seq_cls":
+    elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
         model = AutoModelForSequenceClassification.from_pretrained(
             configs.model_configs.model_name_or_path
         )
@@ -69,13 +71,15 @@ def train(
     (
         model,
         train_dataloader,
-        eval_dataloader,
+        val_dataloader,
+        test_dataloader,
         optimizer,
         lr_scheduler,
     ) = accelerator.prepare(
         model,
         train_dataloader,
-        eval_dataloader,
+        val_dataloader,
+        test_dataloader,
         optimizer,
         lr_scheduler,
     )
@@ -93,66 +97,88 @@ def train(
             lr_scheduler.step()
             optimizer.zero_grad()
 
-            if configs.model_configs.task_type == "causal_lm":
-                train_loss = loss.detach().float()
-                train_ppl = torch.exp(train_loss)
-            elif configs.model_configs.task_type == "seq_cls":
-                roc_auc = roc_auc_metric.compute(predictions, references)
-                f1_micro = f1_metric.compute(predictions, references, average="micro")
-                f1_macro = f1_metric.compute(predictions, references, average="macro")
+            train_loss = loss.detach().float()
 
         if (
             train_step + 1
         ) >= training_steps or train_step % configs.training_configs.log_steps == 0:
-            accelerator.print(
-                f"{train_step=}/{training_steps}: {train_ppl.item()=} - {train_loss.item()=}"
+            metrics = {"train_loss": train_loss}
+            if configs.model_configs.task_type == "causal_lm":
+                train_ppl = torch.exp(train_loss)
+                metrics["train_ppl"] = train_ppl
+
+            elif configs.model_configs.task_type == "seq_cls":
+                predictions = outputs.logits.argmax(dim=-1)
+                predictions, references = accelerator.gather(
+                    (predictions, batch["labels"])
+                )
+                metrics["train_roc_auc"] = roc_auc_metric.compute(
+                    predictions, references
+                )
+                metrics["train_f1_micro"] = f1_metric.compute(
+                    predictions, references, average="micro"
+                )
+                metrics["train_f1_macro"] = f1_metric.compute(
+                    predictions, references, average="macro"
+                )
+
+            metrics_log = " - ".join(
+                [f"{metrics_value.item()=}" for metrics_value in metrics.values()]
             )
+            accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
+
             accelerator.log(
-                {
-                    "train_loss": train_loss,
-                    "train_ppl": train_ppl,
-                },
+                metrics,
                 step=train_step,
             )
 
-        if train_step > 0 and (
-            (train_step + 1) >= training_steps
-            or train_step % configs.training_configs.eval_steps == 0
-        ):
-            model.eval()
-            total_loss = 0
-            for eval_step, batch in enumerate(eval_dataloader):
-                batch = {k: v for k, v in batch.items() if k not in ["token_type_ids"]}
-                with torch.no_grad():
-                    outputs = model(**batch)
-                    loss = outputs.loss
-                    total_loss += loss.detach().float()
-            eval_loss = total_loss / len(eval_dataloader)
-            eval_ppl = torch.exp(eval_loss)
-            accelerator.print(
-                f"{train_step=}/{training_steps}: {train_ppl.item()=} - {train_loss.item()=} - {eval_ppl.item()=} - {eval_loss.item()=}"
+        if (
+            train_step > 0
+            and val_dataloader is not None
+            and (
+                (train_step + 1) >= training_steps
+                or train_step % configs.training_configs.eval_steps == 0
             )
+        ):
+            val_metrics = test(
+                accelerator,
+                model,
+                val_dataloader,
+                metrics,
+                configs.model_configs.task_type,
+                split="val",
+            )
+            metrics_log = " - ".join(
+                [f"{metrics_value.item()=}" for metrics_value in val_metrics.values()]
+            )
+            accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
             accelerator.log(
-                {
-                    "train_loss": train_loss,
-                    "train_ppl": train_ppl,
-                    "eval_loss": eval_loss,
-                    "eval_ppl": eval_ppl,
-                },
+                val_metrics,
                 step=train_step,
             )
 
         if (train_step + 1) >= training_steps:
             break
 
+    # Evaluate on test data
+    test_metrics = test(
+        accelerator,
+        model,
+        test_dataloader,
+        metrics,
+        configs.model_configs.task_type,
+        split="test",
+    )
+    metrics_log = " - ".join(
+        [f"{metrics_value.item()=}" for metrics_value in test_metrics.values()]
+    )
+    accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
+    accelerator.log(
+        test_metrics,
+        step=train_step,
+    )
+
     accelerator.wait_for_everyone()
-
-    # with accelerator.is_main_process:
-    # accelerator.save_state(output_dir=os.path.join(outputs_dir, "checkpoint"))
-    # wandb_tracker.save(os.path.join(outputs_dir, "checkpoint"))
-
-    # # Clean up state files to not fill in the memory
-    # delete_files_in_directory(os.path.join(outputs_dir, "checkpoint"))
 
     hf_username = os.getenv("HF_USERNAME")
     hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
@@ -177,12 +203,60 @@ def train(
     accelerator.wait_for_everyone()
 
 
+def test(
+    accelerator: Accelerator,
+    model: PeftModel,
+    dataloader: DataLoader,
+    metrics: Dict[str, EvaluationModule],
+    task: PEFTTaskType,
+    split="val",
+) -> dict:
+    model.eval()
+    total_loss = 0
+    samples_seen = 0
+    for eval_step, batch in enumerate(dataloader):
+        batch = {k: v for k, v in batch.items() if k not in ["token_type_ids"]}
+        with torch.no_grad():
+            outputs = model(**batch)
+            loss = outputs.loss
+            total_loss += loss.detach().float()
+
+        predictions = outputs.logits.argmax(dim=-1)
+        predictions, references = accelerator.gather((predictions, batch["labels"]))
+        # If we are in a multiprocess environment, the last batch has duplicates
+        if accelerator.num_processes > 1:
+            if eval_step == len(dataloader) - 1:
+                predictions = predictions[: len(dataloader.dataset) - samples_seen]
+                references = references[: len(dataloader.dataset) - samples_seen]
+            else:
+                samples_seen += references.shape[0]
+
+        if task != PEFTTaskType.causal_lm:
+            for metric in list(metrics.values()):
+                metric.add_batch(
+                    predictions=predictions,
+                    references=references,
+                )
+    eval_loss = total_loss / len(dataloader)
+
+    metrics = {
+        f"{split}_loss": eval_loss,
+    }
+    if task == PEFTTaskType.causal_lm:
+        eval_ppl = torch.exp(eval_loss)
+        metrics[f"{split}_ppl"] = eval_ppl
+    else:
+        for metric_name, metric in metrics.items():
+            metrics[f"{split}_{metric_name}"] = metric[metric_name]
+
+    return metrics
+
+
 def run_sweep(
     accelerator: Accelerator,
     configs: Configs,
     wandb_entity: str,
     wandb_project: str,
-    outputs_dir: str,
 ) -> None:
     # Initialise tracker
     if accelerator.is_main_process:
@@ -194,7 +268,12 @@ def run_sweep(
 
     # Load dataset
     # TODO: Allow multiple datasets load
-    dataset = load_dataset(configs.training_configs.dataset_paths[0], data_files="*.gz")
+    if configs.training_configs.dataset_paths[0].endswith("mimic-iv"):
+        dataset = load_dataset(
+            configs.training_configs.dataset_paths[0], data_files="*.gz"
+        )
+    else:
+        dataset = load_dataset(configs.training_configs.dataset_paths[0])
 
     # Load Tokenizer
     tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
@@ -215,8 +294,16 @@ def run_sweep(
         batch_size=configs.training_configs.batch_size,
         pin_memory=True,
     )
+    if "val" in dataset:
+        val_dataloader = DataLoader(
+            dataset["val"],
+            shuffle=True,
+            collate_fn=data_collator,
+            batch_size=configs.training_configs.batch_size,
+            pin_memory=True,
+        )
     if configs.training_configs.test_size > 0:
-        eval_dataloader = DataLoader(
+        test_dataloader = DataLoader(
             dataset["test"],
             shuffle=True,
             collate_fn=data_collator,
@@ -229,6 +316,6 @@ def run_sweep(
         wandb_tracker.tracker,
         accelerator,
         train_dataloader,
-        eval_dataloader,
-        outputs_dir,
+        val_dataloader,
+        test_dataloader,
     )
