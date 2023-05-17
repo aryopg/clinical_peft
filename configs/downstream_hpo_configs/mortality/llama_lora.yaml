@@ -25,11 +25,11 @@ training_configs:
   device: 0
   num_process: 8
   test_size: 0.1
-  epochs: 10
+  epochs: 50
   steps: 1000000
   batch_size: 10
   log_steps: 1000000
   eval_steps: 1000000  # Only evaluate at the end
   checkpoint_steps: 1000000  # Only checkpoint at the end
-  max_sweep_count: 1
+  max_sweep_count: 20
   outputs_dir: "outputs"

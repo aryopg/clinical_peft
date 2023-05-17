@@ -61,8 +61,6 @@ def train(
 
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
-    accelerator.print(model)
-    accelerator.print([(p, p.requires_grad) for p in model.parameters()])
 
     # optimizer
     optimizer = torch.optim.AdamW(
@@ -102,7 +100,6 @@ def train(
             with accelerator.accumulate(model):
                 batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
                 outputs = model(**batch)
-                print("outputs.logits:", outputs.logits)
                 loss = outputs.loss
                 accelerator.backward(loss)
                 optimizer.step()
