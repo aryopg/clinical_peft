@@ -264,6 +264,8 @@ def test(
         eval_metrics[f"{split}_ppl"] = eval_ppl
     else:
         for metric_name, metric in metrics.items():
+            print(metric_name)
+            print(metric)
             if metric_name == "f1":
                 eval_metrics[f"{split}_{metric_name}_micro"] = metric.compute(
                     average="micro"
