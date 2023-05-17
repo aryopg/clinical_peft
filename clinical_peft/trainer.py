@@ -111,22 +111,6 @@ def train(
                 train_ppl = torch.exp(train_loss)
                 metrics["train_ppl"] = train_ppl
 
-            # elif configs.model_configs.task_type == "seq_cls":
-            #     prediction_scores = outputs.logits[:, -1]
-            #     prediction_scores, references = accelerator.gather(
-            #         (prediction_scores, batch["labels"])
-            #     )
-            #     predictions = prediction_scores.argmax(dim=-1)
-            #     metrics["train_roc_auc"] = roc_auc_metric.compute(
-            #         prediction_scores=prediction_scores, references=references
-            #     )
-            #     metrics["train_f1_micro"] = f1_metric.compute(
-            #         predictions=predictions, references=references, average="micro"
-            #     )
-            #     metrics["train_f1_macro"] = f1_metric.compute(
-            #         predictions=predictions, references=references, average="macro"
-            #     )
-
             metrics_log = " - ".join(
                 [
                     f"{metric_name}: {metric_value.item()}"
@@ -233,7 +217,7 @@ def test(
             loss = outputs.loss
             total_loss += loss.detach().float()
 
-        prediction_scores = F.softmax(outputs.logits)
+        prediction_scores = F.softmax(outputs.logits, axis=1)
         prediction_scores, references = accelerator.gather(
             (prediction_scores, batch["labels"])
         )
@@ -247,7 +231,9 @@ def test(
             else:
                 samples_seen += references.shape[0]
 
-        if task != PEFTTaskType.causal_lm:
+        print(task)
+        if task == PEFTTaskType.seq_cls:
+            print("calculating classification metrics")
             for metric_name, metric in metrics.items():
                 if metric_name == "roc_auc":
                     metric.add_batch(
@@ -264,7 +250,7 @@ def test(
     if task == PEFTTaskType.causal_lm:
         eval_ppl = torch.exp(eval_loss)
         eval_metrics[f"{split}_ppl"] = eval_ppl
-    else:
+    elif task == PEFTTaskType.seq_cls:
         for metric_name, metric in metrics.items():
             if metric_name == "f1":
                 eval_metrics[f"{split}_{metric_name}_micro"] = metric.compute(
