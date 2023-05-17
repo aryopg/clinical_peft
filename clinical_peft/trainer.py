@@ -151,7 +151,7 @@ def train(
                 accelerator,
                 model,
                 val_dataloader,
-                metrics,
+                {"roc_auc": roc_auc_metric, "f1": f1_metric},
                 configs.model_configs.task_type,
                 split="val",
             )
@@ -172,7 +172,7 @@ def train(
         accelerator,
         model,
         test_dataloader,
-        metrics,
+        {"roc_auc": roc_auc_metric, "f1": f1_metric},
         configs.model_configs.task_type,
         split="test",
     )
@@ -247,18 +247,12 @@ def test(
 
         if task != PEFTTaskType.causal_lm:
             for metric_name, metric in metrics.items():
-                if metric_name == "train_roc_auc":
+                if metric_name == "roc_auc":
                     metric.add_batch(
                         prediction_scores=prediction_scores, references=references
                     )
-                elif metric_name == "train_f1_micro":
-                    metric.add_batch(
-                        predictions=predictions, references=references, average="micro"
-                    )
-                elif metric_name == "train_f1_macro":
-                    metric.add_batch(
-                        predictions=predictions, references=references, average="macro"
-                    )
+                elif metric_name == "f1":
+                    metric.add_batch(predictions=predictions, references=references)
 
     eval_loss = total_loss / len(dataloader)
 
@@ -270,7 +264,15 @@ def test(
         eval_metrics[f"{split}_ppl"] = eval_ppl
     else:
         for metric_name, metric in metrics.items():
-            eval_metrics[f"{split}_{metric_name}"] = metric.compute()
+            if metric_name == "f1":
+                eval_metrics[f"{split}_{metric_name}_micro"] = metric.compute(
+                    average="micro"
+                )
+                eval_metrics[f"{split}_{metric_name}_macro"] = metric.compute(
+                    average="macro"
+                )
+            else:
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute()
 
     return eval_metrics
 
