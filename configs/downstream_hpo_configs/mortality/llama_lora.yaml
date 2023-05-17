@@ -5,7 +5,7 @@ model_configs:
   peft_hyperparameters:
     method: bayes
     metric:
-      name: roc_auc
+      name: val_roc_auc
       goal: maximize
     parameters:
       r:
