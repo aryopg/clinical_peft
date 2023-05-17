@@ -144,7 +144,10 @@ def train(
                 split="val",
             )
             metrics_log = " - ".join(
-                [f"{metrics_value.item()=}" for metrics_value in val_metrics.values()]
+                [
+                    f"{metric_name}: {metric_value}"
+                    for metric_name, metric_value in val_metrics.items()
+                ]
             )
             accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
             accelerator.log(
@@ -165,7 +168,10 @@ def train(
         split="test",
     )
     metrics_log = " - ".join(
-        [f"{metrics_value.item()=}" for metrics_value in test_metrics.values()]
+        [
+            f"{metric_name}: {metric_value}"
+            for metric_name, metric_value in test_metrics.items()
+        ]
     )
     accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
     accelerator.log(
