@@ -120,7 +120,7 @@ def train(
                     for metric_name, metric_value in metrics.items()
                 ]
             )
-            accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
+            # accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
 
             accelerator.log(
                 metrics,
