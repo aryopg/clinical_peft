@@ -249,8 +249,11 @@ def test(
         eval_metrics[f"{split}_ppl"] = eval_ppl
     elif task == PEFTTaskType.seq_cls:
         eval_metrics[f"{split}_roc_auc"] = metrics["roc_auc"].compute()
+        print(f"{split}_roc_auc", eval_metrics[f"{split}_roc_auc"])
         eval_metrics[f"{split}_f1_micro"] = metrics["f1"].compute(average="micro")
+        print(f"{split}_f1_micro", eval_metrics[f"{split}_f1_micro"])
         eval_metrics[f"{split}_f1_macro"] = metrics["f1"].compute(average="macro")
+        print(f"{split}_f1_macro", eval_metrics[f"{split}_f1_macro"])
 
     return eval_metrics
 
