@@ -17,7 +17,7 @@ from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     DataCollatorForLanguageModeling,
-    DefaultDataCollator,
+    DataCollatorWithPadding,
     PreTrainedTokenizer,
     get_linear_schedule_with_warmup,
 )
@@ -102,8 +102,6 @@ def train(
 
             train_loss = loss.detach().float()
 
-        accelerator.print(train_loss)
-
         if (
             train_step + 1
         ) >= training_steps or train_step % configs.training_configs.log_steps == 0:
@@ -129,7 +127,10 @@ def train(
             #     )
 
             metrics_log = " - ".join(
-                [f"{metrics_value.item()=}" for metrics_value in metrics.values()]
+                [
+                    f"{metric_name}: {metric_value.item()}"
+                    for metric_name, metric_value in metrics.items()
+                ]
             )
             accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
 
@@ -313,7 +314,10 @@ def run_sweep(
     if configs.model_configs.task_type == PEFTTaskType.causal_lm:
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
     elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
-        data_collator = DefaultDataCollator()
+        data_collator = DataCollatorWithPadding(
+            tokenizer=tokenizer,
+            max_length=configs.model_configs.model_hyperparameters.max_seq_len,
+        )
 
     train_dataloader = DataLoader(
         dataset["train"],
