@@ -269,9 +269,8 @@ def test(
         eval_ppl = torch.exp(eval_loss)
         eval_metrics[f"{split}_ppl"] = eval_ppl
     else:
-        metrics = metrics.compute()
         for metric_name, metric in metrics.items():
-            eval_metrics[f"{split}_{metric_name}"] = metric[metric_name]
+            eval_metrics[f"{split}_{metric_name}"] = metric.compute()
 
     return eval_metrics
 
