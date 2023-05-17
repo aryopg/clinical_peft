@@ -17,6 +17,7 @@ from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     DataCollatorForLanguageModeling,
+    DefaultDataCollator,
     PreTrainedTokenizer,
     get_linear_schedule_with_warmup,
 )
@@ -297,7 +298,10 @@ def run_sweep(
 
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.pad_token_id = tokenizer.eos_token_id
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+    if configs.model_configs.task_type == PEFTTaskType.causal_lm:
+        data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+    elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
+        data_collator = DefaultDataCollator()
 
     train_dataloader = DataLoader(
         dataset["train"],
