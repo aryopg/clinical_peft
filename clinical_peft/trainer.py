@@ -92,71 +92,74 @@ def train(
     )
 
     # Train
-    for train_step, batch in enumerate(tqdm(train_dataloader)):
-        model.train()
-        # Manually remove token type ids
-        with accelerator.accumulate(model):
-            batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
-            outputs = model(**batch)
-            loss = outputs.loss
-            accelerator.backward(loss)
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad()
+    for epoch in range(configs.training_configs.epochs):
+        accelerator.print(f" >>> Epoch {epoch + 1} / {configs.training_configs.epochs}")
+        for train_step, batch in enumerate(tqdm(train_dataloader)):
+            model.train()
+            # Manually remove token type ids
+            with accelerator.accumulate(model):
+                batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
+                outputs = model(**batch)
+                loss = outputs.loss
+                accelerator.backward(loss)
+                optimizer.step()
+                lr_scheduler.step()
+                optimizer.zero_grad()
 
-            train_loss = loss.detach().float()
+                train_loss = loss.detach().float()
 
-        if (
-            train_step + 1
-        ) >= training_steps or train_step % configs.training_configs.log_steps == 0:
-            metrics = {"train_loss": train_loss}
-            if configs.model_configs.task_type == "causal_lm":
-                train_ppl = torch.exp(train_loss)
-                metrics["train_ppl"] = train_ppl
-
-            metrics_log = " - ".join(
-                [
-                    f"{metric_name}: {metric_value.item()}"
-                    for metric_name, metric_value in metrics.items()
-                ]
-            )
-            # accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
-
-            accelerator.log(
-                metrics,
-                step=train_step,
-            )
-
-        if (
-            train_step > 0
-            and val_dataloader is not None
-            and (
+            if (
                 (train_step + 1) >= training_steps
-                or train_step % configs.training_configs.eval_steps == 0
-            )
-        ):
-            val_metrics = test(
-                accelerator,
-                model,
-                val_dataloader,
-                classification_metrics,
-                configs.model_configs.task_type,
-                split="val",
-            )
-            metrics_log = " - ".join(
-                [
-                    f"{metric_name}: {metric_value}"
-                    for metric_name, metric_value in val_metrics.items()
-                ]
-            )
-            accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
-            accelerator.log(
-                val_metrics,
-                step=train_step,
-            )
+                or train_step % configs.training_configs.log_steps == 0
+            ):
+                metrics = {"train_loss": train_loss}
+                if configs.model_configs.task_type == "causal_lm":
+                    train_ppl = torch.exp(train_loss)
+                    metrics["train_ppl"] = train_ppl
 
-        if (train_step + 1) >= training_steps:
-            break
+                metrics_log = " - ".join(
+                    [
+                        f"{metric_name}: {metric_value.item()}"
+                        for metric_name, metric_value in metrics.items()
+                    ]
+                )
+                # accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
+
+                accelerator.log(
+                    metrics,
+                    step=train_step,
+                )
+
+            if (
+                train_step > 0
+                and val_dataloader is not None
+                and (
+                    (train_step + 1) >= training_steps
+                    or train_step % configs.training_configs.eval_steps == 0
+                )
+            ):
+                val_metrics = test(
+                    accelerator,
+                    model,
+                    val_dataloader,
+                    classification_metrics,
+                    configs.model_configs.task_type,
+                    split="val",
+                )
+                metrics_log = " - ".join(
+                    [
+                        f"{metric_name}: {metric_value}"
+                        for metric_name, metric_value in val_metrics.items()
+                    ]
+                )
+                accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
+                accelerator.log(
+                    val_metrics,
+                    step=train_step,
+                )
+
+            if (train_step + 1) >= training_steps:
+                break
 
     # Evaluate on test data
     test_metrics = test(
