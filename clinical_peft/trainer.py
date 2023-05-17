@@ -53,8 +53,10 @@ def train(
         model = AutoModelForSequenceClassification.from_pretrained(
             configs.model_configs.model_name_or_path
         )
-        roc_auc_metric = evaluate.load("roc_auc")
-        f1_metric = evaluate.load("f1")
+        classification_metrics = {
+            "roc_auc": evaluate.load("roc_auc"),
+            "f1": evaluate.load("f1"),
+        }
 
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
@@ -136,7 +138,7 @@ def train(
                 accelerator,
                 model,
                 val_dataloader,
-                {"roc_auc": roc_auc_metric, "f1": f1_metric},
+                classification_metrics,
                 configs.model_configs.task_type,
                 split="val",
             )
@@ -157,7 +159,7 @@ def train(
         accelerator,
         model,
         test_dataloader,
-        {"roc_auc": roc_auc_metric, "f1": f1_metric},
+        classification_metrics,
         configs.model_configs.task_type,
         split="test",
     )
@@ -232,13 +234,10 @@ def test(
                 samples_seen += references.shape[0]
 
         if task == PEFTTaskType.seq_cls:
-            for metric_name, metric in metrics.items():
-                if metric_name == "roc_auc":
-                    metric.add_batch(
-                        prediction_scores=prediction_scores, references=references
-                    )
-                elif metric_name == "f1":
-                    metric.add_batch(predictions=predictions, references=references)
+            metrics["roc_auc"].add_batch(
+                prediction_scores=prediction_scores, references=references
+            )
+            metrics["f1"].add_batch(predictions=predictions, references=references)
 
     eval_loss = total_loss / len(dataloader)
 
