@@ -222,6 +222,10 @@ def test(
         predictions, prediction_scores, references = accelerator.gather(
             (predictions, prediction_scores, batch["labels"])
         )
+        print("outputs.logits:", outputs.logits)
+        print("predictions:", predictions)
+        print("prediction_scores:", prediction_scores)
+        print("references:", references)
         # If we are in a multiprocess environment, the last batch has duplicates
         if accelerator.num_processes > 1:
             if eval_step == len(dataloader) - 1:
