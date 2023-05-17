@@ -92,7 +92,9 @@ def train(
         # Manually remove token type ids
         with accelerator.accumulate(model):
             batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
+            print(batch)
             outputs = model(**batch)
+            print(outputs)
             loss = outputs.loss
             accelerator.backward(loss)
             optimizer.step()
