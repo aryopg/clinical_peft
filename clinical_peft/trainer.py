@@ -248,16 +248,9 @@ def test(
         eval_ppl = torch.exp(eval_loss)
         eval_metrics[f"{split}_ppl"] = eval_ppl
     elif task == PEFTTaskType.seq_cls:
-        for metric_name, metric in metrics.items():
-            if metric_name == "f1":
-                eval_metrics[f"{split}_{metric_name}_micro"] = metric.compute(
-                    average="micro"
-                )
-                eval_metrics[f"{split}_{metric_name}_macro"] = metric.compute(
-                    average="macro"
-                )
-            else:
-                eval_metrics[f"{split}_{metric_name}"] = metric.compute()
+        eval_metrics[f"{split}_roc_auc"] = metrics["roc_auc"].compute()
+        eval_metrics[f"{split}_f1_micro"] = metrics["f1"].compute(average="micro")
+        eval_metrics[f"{split}_f1_macro"] = metrics["f1"].compute(average="macro")
 
     return eval_metrics
 
