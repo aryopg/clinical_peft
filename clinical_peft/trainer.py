@@ -101,6 +101,8 @@ def train(
 
             train_loss = loss.detach().float()
 
+        accelerator.print(train_loss)
+
         if (
             train_step + 1
         ) >= training_steps or train_step % configs.training_configs.log_steps == 0:
