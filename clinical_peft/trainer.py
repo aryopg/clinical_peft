@@ -61,6 +61,7 @@ def train(
 
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
+    accelerator.print(model)
 
     # optimizer
     optimizer = torch.optim.AdamW(
