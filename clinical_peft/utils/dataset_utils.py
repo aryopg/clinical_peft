@@ -34,11 +34,12 @@ def preprocess_dataset(
             remove_columns=[
                 column_name
                 for column_name in dataset["train"].column_names
-                if column_name is not "labels"
+                if not column_name == "label"
             ],
             load_from_cache_file=True,
             desc="Running tokenizer on dataset",
         )
+        processed_datasets = processed_datasets.rename_column("label", "labels")
 
     if (
         "test" not in dataset
