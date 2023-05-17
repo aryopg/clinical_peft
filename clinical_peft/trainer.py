@@ -122,13 +122,6 @@ def train(
                         step=train_step,
                     )
 
-                metrics_log = " - ".join(
-                    [
-                        f"{metric_name}: {metric_value.item()}"
-                        for metric_name, metric_value in metrics.items()
-                    ]
-                )
-
             if (train_step + 1) >= training_steps:
                 break
         if configs.model_configs.task_type == "seq_cls":
@@ -224,16 +217,18 @@ def test(
             loss = outputs.loss
             total_loss += loss.detach().float()
 
-        prediction_scores = F.softmax(outputs.logits, dim=1)
-        prediction_scores, references = accelerator.gather(
-            (prediction_scores, batch["labels"])
+        prediction_scores = F.softmax(outputs.logits, dim=1)[:, -1]
+        predictions = outputs.logits.argmax(dim=-1)
+        predictions, prediction_scores, references = accelerator.gather(
+            (predictions, prediction_scores, batch["labels"])
         )
-        predictions = prediction_scores.argmax(dim=-1)
-        prediction_scores = prediction_scores[:, -1]
         # If we are in a multiprocess environment, the last batch has duplicates
         if accelerator.num_processes > 1:
             if eval_step == len(dataloader) - 1:
                 predictions = predictions[: len(dataloader.dataset) - samples_seen]
+                prediction_scores = prediction_scores[
+                    : len(dataloader.dataset) - samples_seen
+                ]
                 references = references[: len(dataloader.dataset) - samples_seen]
             else:
                 samples_seen += references.shape[0]
