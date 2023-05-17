@@ -217,7 +217,7 @@ def test(
             loss = outputs.loss
             total_loss += loss.detach().float()
 
-        prediction_scores = F.softmax(outputs.logits, axis=1)
+        prediction_scores = F.softmax(outputs.logits, dim=1)
         prediction_scores, references = accelerator.gather(
             (prediction_scores, batch["labels"])
         )
