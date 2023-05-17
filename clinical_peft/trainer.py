@@ -231,9 +231,7 @@ def test(
             else:
                 samples_seen += references.shape[0]
 
-        print(task)
         if task == PEFTTaskType.seq_cls:
-            print("calculating classification metrics")
             for metric_name, metric in metrics.items():
                 if metric_name == "roc_auc":
                     metric.add_batch(
