@@ -112,21 +112,21 @@ def train(
                 train_ppl = torch.exp(train_loss)
                 metrics["train_ppl"] = train_ppl
 
-            elif configs.model_configs.task_type == "seq_cls":
-                prediction_scores = outputs.logits[:, -1]
-                prediction_scores, references = accelerator.gather(
-                    (prediction_scores, batch["labels"])
-                )
-                predictions = prediction_scores.argmax(dim=-1)
-                metrics["train_roc_auc"] = roc_auc_metric.compute(
-                    prediction_scores=prediction_scores, references=references
-                )
-                metrics["train_f1_micro"] = f1_metric.compute(
-                    predictions=predictions, references=references, average="micro"
-                )
-                metrics["train_f1_macro"] = f1_metric.compute(
-                    predictions=predictions, references=references, average="macro"
-                )
+            # elif configs.model_configs.task_type == "seq_cls":
+            #     prediction_scores = outputs.logits[:, -1]
+            #     prediction_scores, references = accelerator.gather(
+            #         (prediction_scores, batch["labels"])
+            #     )
+            #     predictions = prediction_scores.argmax(dim=-1)
+            #     metrics["train_roc_auc"] = roc_auc_metric.compute(
+            #         prediction_scores=prediction_scores, references=references
+            #     )
+            #     metrics["train_f1_micro"] = f1_metric.compute(
+            #         predictions=predictions, references=references, average="micro"
+            #     )
+            #     metrics["train_f1_macro"] = f1_metric.compute(
+            #         predictions=predictions, references=references, average="macro"
+            #     )
 
             metrics_log = " - ".join(
                 [f"{metrics_value.item()=}" for metrics_value in metrics.values()]
