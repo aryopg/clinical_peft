@@ -239,10 +239,6 @@ def test(
         )
         predictions = prediction_scores.argmax(dim=-1)
         prediction_scores = prediction_scores[:, -1]
-        print("prediction_scores: ", prediction_scores)
-        print("prediction_scores.size(): ", prediction_scores.size())
-        print("predictions: ", predictions)
-        print("references: ", references)
         # If we are in a multiprocess environment, the last batch has duplicates
         if accelerator.num_processes > 1:
             if eval_step == len(dataloader) - 1:
@@ -250,11 +246,6 @@ def test(
                 references = references[: len(dataloader.dataset) - samples_seen]
             else:
                 samples_seen += references.shape[0]
-
-        print("prediction_scores: ", prediction_scores)
-        print("prediction_scores.size(): ", prediction_scores.size())
-        print("predictions: ", predictions)
-        print("references: ", references)
 
         if task != PEFTTaskType.causal_lm:
             for metric_name, metric in metrics.items():
@@ -275,8 +266,6 @@ def test(
         eval_metrics[f"{split}_ppl"] = eval_ppl
     else:
         for metric_name, metric in metrics.items():
-            print(metric_name)
-            print(metric)
             if metric_name == "f1":
                 eval_metrics[f"{split}_{metric_name}_micro"] = metric.compute(
                     average="micro"
