@@ -93,9 +93,7 @@ def train(
         # Manually remove token type ids
         with accelerator.accumulate(model):
             batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
-            print(batch)
             outputs = model(**batch)
-            print(outputs)
             loss = outputs.loss
             accelerator.backward(loss)
             optimizer.step()
@@ -115,18 +113,19 @@ def train(
                 metrics["train_ppl"] = train_ppl
 
             elif configs.model_configs.task_type == "seq_cls":
-                predictions = outputs.logits.argmax(dim=-1)
-                predictions, references = accelerator.gather(
-                    (predictions, batch["labels"])
+                prediction_scores = outputs.logits[:, -1]
+                prediction_scores, references = accelerator.gather(
+                    (prediction_scores, batch["labels"])
                 )
+                predictions = prediction_scores.argmax(dim=-1)
                 metrics["train_roc_auc"] = roc_auc_metric.compute(
-                    predictions, references
+                    prediction_scores=prediction_scores, references=references
                 )
                 metrics["train_f1_micro"] = f1_metric.compute(
-                    predictions, references, average="micro"
+                    predictions=predictions, references=references, average="micro"
                 )
                 metrics["train_f1_macro"] = f1_metric.compute(
-                    predictions, references, average="macro"
+                    predictions=predictions, references=references, average="macro"
                 )
 
             metrics_log = " - ".join(
@@ -232,8 +231,11 @@ def test(
             loss = outputs.loss
             total_loss += loss.detach().float()
 
-        predictions = outputs.logits.argmax(dim=-1)
-        predictions, references = accelerator.gather((predictions, batch["labels"]))
+        prediction_scores = outputs.logits[:, -1]
+        prediction_scores, references = accelerator.gather(
+            (prediction_scores, batch["labels"])
+        )
+        predictions = prediction_scores.argmax(dim=-1)
         # If we are in a multiprocess environment, the last batch has duplicates
         if accelerator.num_processes > 1:
             if eval_step == len(dataloader) - 1:
@@ -243,24 +245,34 @@ def test(
                 samples_seen += references.shape[0]
 
         if task != PEFTTaskType.causal_lm:
-            for metric in list(metrics.values()):
-                metric.add_batch(
-                    predictions=predictions,
-                    references=references,
-                )
+            for metric_name, metric in metrics.items():
+                if metric_name == "train_roc_auc":
+                    metric.add_batch(
+                        prediction_scores=prediction_scores, references=references
+                    )
+                elif metric_name == "train_f1_micro":
+                    metric.add_batch(
+                        predictions=predictions, references=references, average="micro"
+                    )
+                elif metric_name == "train_f1_macro":
+                    metric.add_batch(
+                        predictions=predictions, references=references, average="macro"
+                    )
+
     eval_loss = total_loss / len(dataloader)
 
-    metrics = {
+    eval_metrics = {
         f"{split}_loss": eval_loss,
     }
     if task == PEFTTaskType.causal_lm:
         eval_ppl = torch.exp(eval_loss)
-        metrics[f"{split}_ppl"] = eval_ppl
+        eval_metrics[f"{split}_ppl"] = eval_ppl
     else:
+        metrics = metrics.compute()
         for metric_name, metric in metrics.items():
-            metrics[f"{split}_{metric_name}"] = metric[metric_name]
+            eval_metrics[f"{split}_{metric_name}"] = metric[metric_name]
 
-    return metrics
+    return eval_metrics
 
 
 def run_sweep(
