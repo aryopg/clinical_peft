@@ -117,49 +117,47 @@ def train(
                     train_ppl = torch.exp(train_loss)
                     metrics["train_ppl"] = train_ppl
 
+                    accelerator.log(
+                        metrics,
+                        step=train_step,
+                    )
+
                 metrics_log = " - ".join(
                     [
                         f"{metric_name}: {metric_value.item()}"
                         for metric_name, metric_value in metrics.items()
                     ]
                 )
-                # accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
-
-                accelerator.log(
-                    metrics,
-                    step=train_step,
-                )
-
-            if (
-                train_step > 0
-                and val_dataloader is not None
-                and (
-                    (train_step + 1) >= training_steps
-                    or train_step % configs.training_configs.eval_steps == 0
-                )
-            ):
-                val_metrics = test(
-                    accelerator,
-                    model,
-                    val_dataloader,
-                    classification_metrics,
-                    configs.model_configs.task_type,
-                    split="val",
-                )
-                metrics_log = " - ".join(
-                    [
-                        f"{metric_name}: {metric_value}"
-                        for metric_name, metric_value in val_metrics.items()
-                    ]
-                )
-                accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
-                accelerator.log(
-                    val_metrics,
-                    step=train_step,
-                )
 
             if (train_step + 1) >= training_steps:
                 break
+        if configs.model_configs.task_type == "seq_cls":
+            accelerator.log(
+                metrics,
+                step=epoch,
+            )
+
+            val_metrics = test(
+                accelerator,
+                model,
+                val_dataloader,
+                classification_metrics,
+                configs.model_configs.task_type,
+                split="val",
+            )
+            metrics_log = " - ".join(
+                [
+                    f"{metric_name}: {metric_value}"
+                    for metric_name, metric_value in val_metrics.items()
+                ]
+            )
+            accelerator.print(
+                f"{epoch=}/{configs.training_configs.epochs}: {metrics_log}"
+            )
+            accelerator.log(
+                val_metrics,
+                step=epoch,
+            )
 
     # Evaluate on test data
     test_metrics = test(
@@ -176,11 +174,8 @@ def train(
             for metric_name, metric_value in test_metrics.items()
         ]
     )
-    accelerator.print(f"{train_step=}/{training_steps}: {metrics_log}")
-    accelerator.log(
-        test_metrics,
-        step=train_step,
-    )
+    accelerator.print(f"Test: {metrics_log}")
+    accelerator.log(test_metrics)
 
     accelerator.wait_for_everyone()
 
