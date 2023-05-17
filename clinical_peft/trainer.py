@@ -10,6 +10,7 @@ from accelerate.tracking import WandBTracker
 from datasets import load_dataset
 from evaluate import EvaluationModule
 from peft import PeftConfig, PeftModel, get_peft_model
+from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import (
@@ -232,11 +233,12 @@ def test(
             loss = outputs.loss
             total_loss += loss.detach().float()
 
-        prediction_scores = outputs.logits
+        prediction_scores = F.softmax(outputs.logits)
         prediction_scores, references = accelerator.gather(
             (prediction_scores, batch["labels"])
         )
         predictions = prediction_scores.argmax(dim=-1)
+        prediction_scores = prediction_scores[:, -1]
         print("prediction_scores: ", prediction_scores)
         print("prediction_scores.size(): ", prediction_scores.size())
         print("predictions: ", predictions)
