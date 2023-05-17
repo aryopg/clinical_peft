@@ -232,12 +232,13 @@ def test(
             loss = outputs.loss
             total_loss += loss.detach().float()
 
-        prediction_scores = outputs.logits[:, -1]
+        prediction_scores = outputs.logits
         prediction_scores, references = accelerator.gather(
             (prediction_scores, batch["labels"])
         )
         predictions = prediction_scores.argmax(dim=-1)
         print("prediction_scores: ", prediction_scores)
+        print("prediction_scores.size(): ", prediction_scores.size())
         print("predictions: ", predictions)
         print("references: ", references)
         # If we are in a multiprocess environment, the last batch has duplicates
@@ -249,6 +250,7 @@ def test(
                 samples_seen += references.shape[0]
 
         print("prediction_scores: ", prediction_scores)
+        print("prediction_scores.size(): ", prediction_scores.size())
         print("predictions: ", predictions)
         print("references: ", references)
 
