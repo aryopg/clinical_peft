@@ -102,6 +102,7 @@ def train(
             with accelerator.accumulate(model):
                 batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
                 outputs = model(**batch)
+                print("outputs.logits:", outputs.logits)
                 loss = outputs.loss
                 accelerator.backward(loss)
                 optimizer.step()
@@ -224,10 +225,6 @@ def test(
         predictions, prediction_scores, references = accelerator.gather(
             (predictions, prediction_scores, batch["labels"])
         )
-        print("outputs.logits:", outputs.logits)
-        print("predictions:", predictions)
-        print("prediction_scores:", prediction_scores)
-        print("references:", references)
         # If we are in a multiprocess environment, the last batch has duplicates
         if accelerator.num_processes > 1:
             if eval_step == len(dataloader) - 1:
