@@ -55,7 +55,8 @@ def train(
         )
         classification_metrics = {
             "roc_auc": evaluate.load("roc_auc"),
-            "f1": evaluate.load("f1"),
+            "f1_micro": evaluate.load("f1"),
+            "f1_macro": evaluate.load("f1"),
         }
 
     model = get_peft_model(model, peft_config)
@@ -234,10 +235,13 @@ def test(
                 samples_seen += references.shape[0]
 
         if task == PEFTTaskType.seq_cls:
-            metrics["roc_auc"].add_batch(
-                prediction_scores=prediction_scores, references=references
-            )
-            metrics["f1"].add_batch(predictions=predictions, references=references)
+            for metric_name, metric in metrics.items():
+                if metric_name == "roc_auc":
+                    metric.add_batch(
+                        prediction_scores=prediction_scores, references=references
+                    )
+                else:
+                    metric.add_batch(predictions=predictions, references=references)
 
     eval_loss = total_loss / len(dataloader)
 
@@ -248,12 +252,8 @@ def test(
         eval_ppl = torch.exp(eval_loss)
         eval_metrics[f"{split}_ppl"] = eval_ppl
     elif task == PEFTTaskType.seq_cls:
-        eval_metrics[f"{split}_roc_auc"] = metrics["roc_auc"].compute()
-        print(f"{split}_roc_auc", eval_metrics[f"{split}_roc_auc"])
-        eval_metrics[f"{split}_f1_micro"] = metrics["f1"].compute(average="micro")
-        print(f"{split}_f1_micro", eval_metrics[f"{split}_f1_micro"])
-        eval_metrics[f"{split}_f1_macro"] = metrics["f1"].compute(average="macro")
-        print(f"{split}_f1_macro", eval_metrics[f"{split}_f1_macro"])
+        for metric_name, metric in metrics.items():
+            eval_metrics[f"{split}_{metric_name}"] = metric.compute()
 
     return eval_metrics
 
