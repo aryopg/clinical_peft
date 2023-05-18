@@ -71,7 +71,8 @@ def train(
     training_steps = min(len(train_dataloader), configs.training_configs.steps)
     lr_scheduler = get_linear_schedule_with_warmup(
         optimizer=optimizer,
-        num_warmup_steps=0,
+        num_warmup_steps=0.06
+        * (len(train_dataloader) * configs.training_configs.epochs),
         num_training_steps=training_steps,
     )
 
