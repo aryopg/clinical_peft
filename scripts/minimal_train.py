@@ -110,8 +110,7 @@ model.to(device)
 for epoch in range(num_epochs):
     model.train()
     for step, batch in enumerate(tqdm(train_dataloader)):
-        batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
-        batch.to(device)
+        batch = {k: v.to(device) for k, v in batch.items() if k != "token_type_ids"}
         outputs = model(**batch)
         loss = outputs.loss
         loss.backward()
