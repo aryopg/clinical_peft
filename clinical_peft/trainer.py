@@ -61,8 +61,6 @@ def train(
 
     # model = get_peft_model(model, peft_config)
     # model.print_trainable_parameters()
-    # for name, param in model.named_parameters():
-    #     print(name, param.requires_grad)
 
     # optimizer
     optimizer = torch.optim.AdamW(
@@ -106,6 +104,9 @@ def train(
                 accelerator.backward(loss)
                 optimizer.step()
                 lr_scheduler.step()
+                for name, param in model.named_parameters():
+                    if param.requires_grad:
+                        print(name, param.grad)
                 optimizer.zero_grad()
 
                 train_loss = loss.detach().float()
