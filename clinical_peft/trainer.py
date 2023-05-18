@@ -59,10 +59,10 @@ def train(
             "f1_macro": evaluate.load("f1"),
         }
 
-    model = get_peft_model(model, peft_config)
-    model.print_trainable_parameters()
-    for name, param in model.named_parameters():
-        print(name, param.requires_grad)
+    # model = get_peft_model(model, peft_config)
+    # model.print_trainable_parameters()
+    # for name, param in model.named_parameters():
+    #     print(name, param.requires_grad)
 
     # optimizer
     optimizer = torch.optim.AdamW(
