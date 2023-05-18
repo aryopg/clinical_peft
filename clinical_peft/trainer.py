@@ -120,21 +120,22 @@ def train(
 
             train_loss = loss.detach().float()
 
-        if (
-            train_step + 1
-        ) >= training_steps or train_step % configs.training_configs.log_steps == 0:
-            metrics = {"train_loss": train_loss}
-            if configs.model_configs.task_type == "causal_lm":
-                train_ppl = torch.exp(train_loss)
-                metrics["train_ppl"] = train_ppl
+            if (
+                (train_step + 1) >= training_steps
+                or train_step % configs.training_configs.log_steps == 0
+            ):
+                metrics = {"train_loss": train_loss}
+                if configs.model_configs.task_type == "causal_lm":
+                    train_ppl = torch.exp(train_loss)
+                    metrics["train_ppl"] = train_ppl
 
-                accelerator.log(
-                    metrics,
-                    step=train_step,
-                )
+                    accelerator.log(
+                        metrics,
+                        step=train_step,
+                    )
 
-            if (train_step + 1) >= training_steps:
-                break
+                if (train_step + 1) >= training_steps:
+                    break
         if configs.model_configs.task_type == "seq_cls":
             accelerator.log(
                 metrics,
