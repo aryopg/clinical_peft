@@ -25,7 +25,7 @@ training_configs:
   device: 0
   num_process: 8
   test_size: 0.1
-  epochs: 2
+  epochs: 20
   steps: 1000000
   batch_size: 10
   log_steps: 1000000

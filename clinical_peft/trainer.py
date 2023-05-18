@@ -147,7 +147,7 @@ def train(
                 ]
             )
             accelerator.print(
-                f"{epoch=}/{configs.training_configs.epochs}: {metrics_log}"
+                f"Epoch: {epoch+1}/{configs.training_configs.epochs}: {metrics_log}"
             )
             accelerator.log(
                 val_metrics,
