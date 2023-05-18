@@ -110,8 +110,6 @@ model.to(device)
 for epoch in range(num_epochs):
     model.train()
     for step, batch in enumerate(tqdm(train_dataloader)):
-        if step >= 20:
-            break
         batch = {k: v.to(device) for k, v in batch.items() if k != "token_type_ids"}
         outputs = model(**batch)
         loss = outputs.loss
@@ -122,8 +120,6 @@ for epoch in range(num_epochs):
 
     model.eval()
     for step, batch in enumerate(tqdm(eval_dataloader)):
-        if step >= 20:
-            break
         batch = {k: v.to(device) for k, v in batch.items() if k != "token_type_ids"}
         with torch.no_grad():
             outputs = model(**batch)
