@@ -46,7 +46,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, padding_side=paddi
 if getattr(tokenizer, "pad_token_id") is None:
     tokenizer.pad_token_id = tokenizer.eos_token_id
 
-datasets = load_dataset("dataset_name")
+datasets = load_dataset(dataset_name)
 metric = evaluate.load("f1")
 
 tokenized_datasets = datasets.map(
