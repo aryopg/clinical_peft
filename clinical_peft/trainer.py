@@ -290,8 +290,9 @@ def run_sweep(
         dataset = preprocess_dataset(dataset, configs, tokenizer)
     accelerator.wait_for_everyone()
 
-    tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.pad_token_id = tokenizer.eos_token_id
+    if getattr(tokenizer, "pad_token_id") is None:
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.pad_token_id = tokenizer.eos_token_id
     if configs.model_configs.task_type == PEFTTaskType.causal_lm:
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
     elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
