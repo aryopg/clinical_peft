@@ -109,10 +109,6 @@ def train(
             with accelerator.accumulate(model):
                 batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
                 outputs = model(**batch)
-                print(batch["labels"])
-                print(outputs.logits)
-                print(F.cross_entropy(outputs.logits, batch["labels"]))
-                print(outputs.loss)
                 loss = outputs.loss
                 accelerator.backward(loss)
                 optimizer.step()
@@ -146,6 +142,15 @@ def train(
                 step=epoch,
             )
 
+            train_metrics = test(
+                accelerator,
+                model,
+                train_dataloader,
+                classification_metrics,
+                configs.model_configs.task_type,
+                split="train",
+            )
+
             val_metrics = test(
                 accelerator,
                 model,
@@ -154,12 +159,19 @@ def train(
                 configs.model_configs.task_type,
                 split="val",
             )
-            metrics_log = " - ".join(
+            train_metrics_log = " - ".join(
+                [
+                    f"{metric_name}: {metric_value}"
+                    for metric_name, metric_value in train_metrics.items()
+                ]
+            )
+            val_metrics_log = " - ".join(
                 [
                     f"{metric_name}: {metric_value}"
                     for metric_name, metric_value in val_metrics.items()
                 ]
             )
+            metrics_log = train_metrics_log + val_metrics_log
             accelerator.print(
                 f"Epoch: {epoch+1}/{configs.training_configs.epochs}: {metrics_log}"
             )
