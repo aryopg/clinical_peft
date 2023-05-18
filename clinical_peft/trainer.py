@@ -105,7 +105,7 @@ def train(
                 optimizer.step()
                 lr_scheduler.step()
                 for name, param in model.named_parameters():
-                    if param.requires_grad:
+                    if "classifier" in name and param.requires_grad:
                         print(name, param.grad)
                 optimizer.zero_grad()
 
