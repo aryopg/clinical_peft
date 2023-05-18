@@ -24,6 +24,7 @@ from transformers import (
 )
 
 from .configs import Configs, PEFTTaskType
+from .constants import LABELS_MAP
 from .utils.common_utils import delete_files_in_directory
 from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config
@@ -50,8 +51,15 @@ def train(
             configs.model_configs.model_name_or_path
         )
     elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
+        labels_map = LABELS_MAP[
+            configs.training_configs.dataset_paths[0].split("/")[-1]
+        ]
+
         model = AutoModelForSequenceClassification.from_pretrained(
-            configs.model_configs.model_name_or_path
+            configs.model_configs.model_name_or_path,
+            num_labels=len(labels_map),
+            label2id=labels_map,
+            id2label={v: k for k, v in labels_map.items()},
         )
         classification_metrics = {
             "roc_auc": evaluate.load("roc_auc"),
@@ -100,14 +108,15 @@ def train(
             # Manually remove token type ids
             with accelerator.accumulate(model):
                 batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
+                print(batch)
                 outputs = model(**batch)
                 loss = outputs.loss
                 accelerator.backward(loss)
                 optimizer.step()
                 lr_scheduler.step()
-                for name, param in model.named_parameters():
-                    if "classifier" in name and param.requires_grad:
-                        print(name, param.grad)
+                # for name, param in model.named_parameters():
+                #     if "classifier" in name and param.requires_grad:
+                #         print(name, param.grad)
                 optimizer.zero_grad()
 
                 train_loss = loss.detach().float()
