@@ -106,33 +106,32 @@ def train(
         for train_step, batch in enumerate(tqdm(train_dataloader)):
             model.train()
             # Manually remove token type ids
-            with accelerator.accumulate(model):
-                batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
-                outputs = model(**batch)
-                loss = outputs.loss
-                accelerator.backward(loss)
-                optimizer.step()
-                lr_scheduler.step()
-                # for name, param in model.named_parameters():
-                #     if "classifier" in name and param.requires_grad:
-                #         print(name, param.grad)
-                optimizer.zero_grad()
+            # with accelerator.accumulate(model):
+            batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
+            outputs = model(**batch)
+            loss = outputs.loss
+            accelerator.backward(loss)
+            optimizer.step()
+            lr_scheduler.step()
+            # for name, param in model.named_parameters():
+            #     if "classifier" in name and param.requires_grad:
+            #         print(name, param.grad)
+            optimizer.zero_grad()
 
-                train_loss = loss.detach().float()
+            train_loss = loss.detach().float()
 
-            if (
-                (train_step + 1) >= training_steps
-                or train_step % configs.training_configs.log_steps == 0
-            ):
-                metrics = {"train_loss": train_loss}
-                if configs.model_configs.task_type == "causal_lm":
-                    train_ppl = torch.exp(train_loss)
-                    metrics["train_ppl"] = train_ppl
+        if (
+            train_step + 1
+        ) >= training_steps or train_step % configs.training_configs.log_steps == 0:
+            metrics = {"train_loss": train_loss}
+            if configs.model_configs.task_type == "causal_lm":
+                train_ppl = torch.exp(train_loss)
+                metrics["train_ppl"] = train_ppl
 
-                    accelerator.log(
-                        metrics,
-                        step=train_step,
-                    )
+                accelerator.log(
+                    metrics,
+                    step=train_step,
+                )
 
             if (train_step + 1) >= training_steps:
                 break
@@ -171,7 +170,7 @@ def train(
                     for metric_name, metric_value in val_metrics.items()
                 ]
             )
-            metrics_log = train_metrics_log + val_metrics_log
+            metrics_log = train_metrics_log + "-" + val_metrics_log
             accelerator.print(
                 f"Epoch: {epoch+1}/{configs.training_configs.epochs}: {metrics_log}"
             )
