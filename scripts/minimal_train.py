@@ -37,7 +37,7 @@ num_epochs = 20
 max_length = 128
 
 peft_config = LoraConfig(
-    task_type="SEQ_CLS", inference_mode=False, r=16, lora_alpha=32, lora_dropout=0.1
+    task_type="SEQ_CLS", inference_mode=False, r=2, lora_alpha=8, lora_dropout=0.1
 )
 lr = 3e-4
 
