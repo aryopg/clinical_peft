@@ -17,7 +17,7 @@ model_configs:
   model_hyperparameters:
     learning_rate: 0.0003
     max_seq_len: 128
-    gradient_accumulation_steps: 1
+    gradient_accumulation_steps: 2
 training_configs:
   dataset_paths:
     - aryopg/trec-mortality
@@ -25,7 +25,7 @@ training_configs:
   device: 0
   num_process: 8
   test_size: 0.1
-  epochs: 5
+  epochs: 20
   steps: 1000000
   batch_size: 32
   log_steps: 1000000

@@ -81,6 +81,9 @@ def collate_fn(examples):
     return tokenizer.pad(examples, padding="longest", return_tensors="pt")
 
 
+if getattr(tokenizer, "pad_token_id") is None:
+    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.pad_token_id = tokenizer.eos_token_id
 data_collator = DataCollatorWithPadding(
     tokenizer=tokenizer,
     padding="longest",
@@ -94,12 +97,14 @@ train_dataloader = DataLoader(
     shuffle=True,
     collate_fn=data_collator,
     batch_size=batch_size,
+    pin_memory=True,
 )
 eval_dataloader = DataLoader(
     tokenized_datasets["validation"],
     shuffle=False,
     collate_fn=data_collator,
     batch_size=batch_size,
+    pin_memory=True,
 )
 
 
@@ -138,13 +143,14 @@ accelerator = Accelerator(gradient_accumulation_steps=2)
 for epoch in range(num_epochs):
     model.train()
     for step, batch in enumerate(tqdm(train_dataloader)):
-        batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
-        outputs = model(**batch)
-        loss = outputs.loss
-        loss.backward()
-        optimizer.step()
-        lr_scheduler.step()
-        optimizer.zero_grad()
+        with accelerator.accumulate(model):
+            batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
+            outputs = model(**batch)
+            loss = outputs.loss
+            loss.backward()
+            optimizer.step()
+            lr_scheduler.step()
+            optimizer.zero_grad()
 
     model.eval()
     for step, batch in enumerate(tqdm(eval_dataloader)):

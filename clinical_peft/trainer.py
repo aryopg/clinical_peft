@@ -52,6 +52,8 @@ def train(
         wandb_tracker.config,
     )
 
+    accelerator.print(peft_config)
+
     if configs.model_configs.task_type == PEFTTaskType.causal_lm:
         model = AutoModelForCausalLM.from_pretrained(
             configs.model_configs.model_name_or_path, return_dict=True
@@ -78,7 +80,9 @@ def train(
 
     # optimizer
     optimizer = torch.optim.AdamW(
-        model.parameters(), lr=configs.model_configs.model_hyperparameters.learning_rate
+        # params=model.parameters(), lr=configs.model_configs.model_hyperparameters.learning_rate
+        params=model.parameters(),
+        lr=3e-4,
     )
 
     # lr scheduler
@@ -120,7 +124,7 @@ def train(
                 accelerator.backward(loss)
                 optimizer.step()
                 lr_scheduler.step()
-            optimizer.zero_grad()
+                optimizer.zero_grad()
 
             train_loss = loss.detach().float()
 
