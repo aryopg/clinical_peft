@@ -3,6 +3,7 @@ import os
 
 import evaluate
 import torch
+from accelerate import Accelerator
 from datasets import load_dataset
 from peft import (
     LoraConfig,
@@ -110,11 +111,26 @@ lr_scheduler = get_linear_schedule_with_warmup(
     num_training_steps=(len(train_dataloader) * num_epochs),
 )
 
-model.to(device)
+accelerator = Accelerator()
+(
+    model,
+    train_dataloader,
+    eval_dataloader,
+    optimizer,
+    lr_scheduler,
+) = accelerator.prepare(
+    model,
+    train_dataloader,
+    eval_dataloader,
+    optimizer,
+    lr_scheduler,
+)
+
+# model.to(device)
 for epoch in range(num_epochs):
     model.train()
     for step, batch in enumerate(tqdm(train_dataloader)):
-        batch = {k: v.to(device) for k, v in batch.items() if k != "token_type_ids"}
+        batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
         outputs = model(**batch)
         loss = outputs.loss
         loss.backward()
@@ -124,7 +140,7 @@ for epoch in range(num_epochs):
 
     model.eval()
     for step, batch in enumerate(tqdm(eval_dataloader)):
-        batch = {k: v.to(device) for k, v in batch.items() if k != "token_type_ids"}
+        batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
         with torch.no_grad():
             outputs = model(**batch)
         prediction_scores = F.softmax(outputs.logits, dim=1)[:, -1]
