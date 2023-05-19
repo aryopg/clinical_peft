@@ -22,6 +22,7 @@ from tqdm import tqdm
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
+    DataCollatorWithPadding,
     get_linear_schedule_with_warmup,
     set_seed,
 )
@@ -80,17 +81,24 @@ def collate_fn(examples):
     return tokenizer.pad(examples, padding="longest", return_tensors="pt")
 
 
+data_collator = DataCollatorWithPadding(
+    tokenizer=tokenizer,
+    padding="longest",
+    return_tensors="pt",
+    # max_length=configs.model_configs.model_hyperparameters.max_seq_len,
+)
+
 # Instantiate dataloaders.
 train_dataloader = DataLoader(
     tokenized_datasets["train"],
     shuffle=True,
-    collate_fn=collate_fn,
+    collate_fn=data_collator,
     batch_size=batch_size,
 )
 eval_dataloader = DataLoader(
     tokenized_datasets["validation"],
     shuffle=False,
-    collate_fn=collate_fn,
+    collate_fn=data_collator,
     batch_size=batch_size,
 )
 
