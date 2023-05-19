@@ -248,23 +248,24 @@ def test(
         batch = {k: v for k, v in batch.items() if k not in ["token_type_ids"]}
         with torch.no_grad():
             outputs = model(**batch)
-            loss = outputs.loss
-            total_loss += loss.detach().float()
 
-        prediction_scores = F.softmax(outputs.logits, dim=1)[:, -1]
-        predictions = outputs.logits.argmax(dim=-1)
-        references = batch["labels"]
-        predictions, prediction_scores, references = accelerator.gather(
-            (predictions, prediction_scores, batch["labels"])
-        )
+        loss = outputs.loss
+        total_loss += loss.detach().float()
 
         if task == PEFTTaskType.seq_cls:
+            prediction_scores = F.softmax(outputs.logits, dim=1)[:, -1]
+            predictions = outputs.logits.argmax(dim=-1)
+            references = batch["labels"]
+            predictions, prediction_scores, references = accelerator.gather(
+                (predictions, prediction_scores, batch["labels"])
+            )
+
             for metric_name, metric in metrics.items():
                 if metric_name == "roc_auc":
                     metric.add_batch(
                         prediction_scores=prediction_scores, references=references
                     )
-                else:
+                elif metric_name.startswith("f1_"):
                     metric.add_batch(predictions=predictions, references=references)
 
     eval_loss = total_loss / len(dataloader)
@@ -277,7 +278,12 @@ def test(
         eval_metrics[f"{split}_ppl"] = eval_ppl
     elif task == PEFTTaskType.seq_cls:
         for metric_name, metric in metrics.items():
-            eval_metrics[f"{split}_{metric_name}"] = metric.compute()
+            if metric_name == "roc_auc":
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute()
+            elif metric_name == "f1_micro":
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute(average="micro")
+            elif metric_name == "f1_macro":
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute(average="macro")
 
     return eval_metrics
 
