@@ -111,7 +111,7 @@ lr_scheduler = get_linear_schedule_with_warmup(
     num_training_steps=(len(train_dataloader) * num_epochs),
 )
 
-accelerator = Accelerator()
+accelerator = Accelerator(gradient_accumulation_steps=2)
 (
     model,
     train_dataloader,
