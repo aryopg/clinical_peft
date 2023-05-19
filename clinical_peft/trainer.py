@@ -43,6 +43,8 @@ def train(
     accelerator.print("Loading model:")
     accelerator.print(configs.model_configs)
     accelerator.print(wandb_tracker.config)
+
+    num_epochs = configs.training_configs.epochs
     # Load Model
     peft_config: PeftConfig = load_peft_config(
         configs.model_configs.peft_type,
@@ -68,7 +70,7 @@ def train(
         classification_metrics = {
             "roc_auc": evaluate.load("roc_auc"),
             "f1_micro": evaluate.load("f1"),
-            # "f1_macro": evaluate.load("f1"),
+            "f1_macro": evaluate.load("f1"),
         }
 
     model = get_peft_model(model, peft_config)
@@ -80,12 +82,14 @@ def train(
     )
 
     # lr scheduler
-    training_steps = min(len(train_dataloader), configs.training_configs.steps)
+    if configs.model_configs.task_type == PEFTTaskType.causal_lm:
+        num_training_steps = min(len(train_dataloader), configs.training_configs.steps)
+    elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
+        num_training_steps = len(train_dataloader) * num_epochs
     lr_scheduler = get_linear_schedule_with_warmup(
         optimizer=optimizer,
-        num_warmup_steps=0.06
-        * (len(train_dataloader) * configs.training_configs.epochs),
-        num_training_steps=training_steps,
+        num_warmup_steps=0.06 * num_training_steps,
+        num_training_steps=num_training_steps,
     )
 
     (
@@ -104,27 +108,24 @@ def train(
         lr_scheduler,
     )
 
-    for epoch in range(configs.training_configs.epochs):
-        accelerator.print(f" >>> Epoch {epoch + 1} / {configs.training_configs.epochs}")
+    for epoch in range(num_epochs):
+        accelerator.print(f" >>> Epoch {epoch + 1} / {num_epochs}")
         model.train()
         for train_step, batch in enumerate(tqdm(train_dataloader)):
             # Manually remove token type ids
-            # with accelerator.accumulate(model):
-            batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
-            outputs = model(**batch)
-            loss = outputs.loss
-            accelerator.backward(loss)
-            optimizer.step()
-            lr_scheduler.step()
-            # for name, param in model.named_parameters():
-            #     if "classifier" in name and param.requires_grad:
-            #         print(name, param.grad)
+            with accelerator.accumulate(model):
+                batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
+                outputs = model(**batch)
+                loss = outputs.loss
+                accelerator.backward(loss)
+                optimizer.step()
+                lr_scheduler.step()
             optimizer.zero_grad()
 
             train_loss = loss.detach().float()
 
             if (
-                (train_step + 1) >= training_steps
+                (train_step + 1) >= num_training_steps
                 or train_step % configs.training_configs.log_steps == 0
             ):
                 metrics = {"train_loss": train_loss}
@@ -137,11 +138,11 @@ def train(
                         step=train_step,
                     )
 
-                if (train_step + 1) >= training_steps:
+                if (train_step + 1) >= num_training_steps:
                     break
         if configs.model_configs.task_type == "seq_cls":
             accelerator.log(
-                metrics,
+                {"train_loss": train_loss},
                 step=epoch,
             )
 
@@ -176,9 +177,7 @@ def train(
             )
             # metrics_log = train_metrics_log + " - " + val_metrics_log
             metrics_log = val_metrics_log
-            accelerator.print(
-                f"Epoch: {epoch+1}/{configs.training_configs.epochs}: {metrics_log}"
-            )
+            accelerator.print(f"Epoch: {epoch+1}/{num_epochs}: {metrics_log}")
             accelerator.log(
                 val_metrics,
                 step=epoch,
@@ -251,9 +250,9 @@ def test(
         prediction_scores = F.softmax(outputs.logits, dim=1)[:, -1]
         predictions = outputs.logits.argmax(dim=-1)
         references = batch["labels"]
-        # predictions, prediction_scores, references = accelerator.gather(
-        #     (predictions, prediction_scores, batch["labels"])
-        # )
+        predictions, prediction_scores, references = accelerator.gather(
+            (predictions, prediction_scores, batch["labels"])
+        )
 
         if task == PEFTTaskType.seq_cls:
             for metric_name, metric in metrics.items():
