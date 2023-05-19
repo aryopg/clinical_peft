@@ -254,7 +254,7 @@ def test(
         # predictions, prediction_scores, references = accelerator.gather(
         #     (predictions, prediction_scores, batch["labels"])
         # )
-        
+
         if task == PEFTTaskType.seq_cls:
             for metric_name, metric in metrics.items():
                 if metric_name == "roc_auc":
@@ -321,8 +321,8 @@ def run_sweep(
     elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
         data_collator = DataCollatorWithPadding(
             tokenizer=tokenizer,
-            padding="longest"
-            return_tensors="pt"
+            padding="longest",
+            return_tensors="pt",
             # max_length=configs.model_configs.model_hyperparameters.max_seq_len,
         )
 
