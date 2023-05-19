@@ -25,7 +25,7 @@ from transformers import (
 )
 
 batch_size = 32
-model_name_or_path = "aryopg/llama-7b"
+model_name_or_path = "emilyalsentzer/Bio_ClinicalBERT"
 dataset_name = "aryopg/trec-mortality"
 peft_type = PeftType.LORA
 device = "cuda"
@@ -130,5 +130,5 @@ for epoch in range(num_epochs):
             references=references,
         )
 
-    eval_metric = metric.compute()
+    eval_metric = metric.compute(average="micro")
     print(f"epoch {epoch}:", eval_metric)
