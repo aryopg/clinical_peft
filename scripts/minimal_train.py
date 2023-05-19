@@ -27,7 +27,7 @@ from transformers import (
 )
 
 batch_size = 32
-model_name_or_path = "bionlp/bluebert_pubmed_mimic_uncased_L-12_H-768_A-12"
+model_name_or_path = "emilyalsentzer/Bio_ClinicalBERT"
 dataset_name = "aryopg/trec-mortality"
 peft_type = PeftType.LORA
 device = "cuda"
