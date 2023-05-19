@@ -80,9 +80,8 @@ def train(
 
     # optimizer
     optimizer = torch.optim.AdamW(
-        # params=model.parameters(), lr=configs.model_configs.model_hyperparameters.learning_rate
         params=model.parameters(),
-        lr=3e-4,
+        lr=configs.model_configs.model_hyperparameters.learning_rate,
     )
 
     # lr scheduler
@@ -92,7 +91,8 @@ def train(
         num_training_steps = len(train_dataloader) * num_epochs
     lr_scheduler = get_linear_schedule_with_warmup(
         optimizer=optimizer,
-        num_warmup_steps=0.06 * num_training_steps,
+        num_warmup_steps=configs.model_configs.model_hyperparameters.warmup_steps_ratio
+        * num_training_steps,
         num_training_steps=num_training_steps,
     )
 
@@ -150,14 +150,14 @@ def train(
                 step=epoch,
             )
 
-            # train_metrics = test(
-            #     accelerator,
-            #     model,
-            #     train_dataloader,
-            #     classification_metrics,
-            #     configs.model_configs.task_type,
-            #     split="train",
-            # )
+            train_metrics = test(
+                accelerator,
+                model,
+                train_dataloader,
+                classification_metrics,
+                configs.model_configs.task_type,
+                split="train",
+            )
 
             val_metrics = test(
                 accelerator,
@@ -167,23 +167,23 @@ def train(
                 configs.model_configs.task_type,
                 split="val",
             )
-            # train_metrics_log = " - ".join(
-            #     [
-            #         f"{metric_name}: {metric_value}"
-            #         for metric_name, metric_value in train_metrics.items()
-            #     ]
-            # )
+            train_metrics_log = " - ".join(
+                [
+                    f"{metric_name}: {metric_value}"
+                    for metric_name, metric_value in train_metrics.items()
+                ]
+            )
             val_metrics_log = " - ".join(
                 [
                     f"{metric_name}: {metric_value}"
                     for metric_name, metric_value in val_metrics.items()
                 ]
             )
-            # metrics_log = train_metrics_log + " - " + val_metrics_log
-            metrics_log = val_metrics_log
+            combined_metrics = train_metrics | val_metrics
+            metrics_log = train_metrics_log + " - " + val_metrics_log
             accelerator.print(f"Epoch: {epoch+1}/{num_epochs}: {metrics_log}")
             accelerator.log(
-                val_metrics,
+                combined_metrics,
                 step=epoch,
             )
 
@@ -328,6 +328,7 @@ def run_sweep(
         dataset = preprocess_dataset(dataset, configs, tokenizer)
     accelerator.wait_for_everyone()
 
+    # TODO: PMC-LLaMA doesn't specify these special characters
     if getattr(tokenizer, "pad_token_id") is None:
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id

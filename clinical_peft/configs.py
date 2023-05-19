@@ -22,6 +22,7 @@ class PEFTType(str, Enum):
 class ModelHyperparameters(BaseModel):
     learning_rate: float
     max_seq_len: int
+    warmup_steps_ratio: float
     gradient_accumulation_steps: int
 
 
