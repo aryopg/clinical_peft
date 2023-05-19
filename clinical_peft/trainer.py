@@ -41,7 +41,7 @@ def train(
     sweep_name: str = None,
 ) -> None:
     accelerator.print("Loading model:")
-    accelerator.print(configs.model_configs)
+    accelerator.print(configs.model_configs.dict())
     accelerator.print(wandb_tracker.config)
 
     num_epochs = configs.training_configs.epochs
@@ -304,8 +304,14 @@ def run_sweep(
         dataset = load_dataset(configs.training_configs.dataset_paths[0])
 
     # Load Tokenizer
+    if any(
+        k in configs.model_configs.model_name_or_path for k in ("gpt", "opt", "bloom")
+    ):
+        padding_side = "left"
+    else:
+        padding_side = "right"
     tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
-        configs.model_configs.model_name_or_path
+        configs.model_configs.model_name_or_path, padding_side=padding_side
     )
 
     with accelerator.main_process_first():
