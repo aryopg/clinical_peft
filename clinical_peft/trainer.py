@@ -20,6 +20,7 @@ from transformers import (
     DataCollatorForLanguageModeling,
     DataCollatorWithPadding,
     PreTrainedTokenizer,
+    TrainingArguments,
     get_linear_schedule_with_warmup,
 )
 
@@ -39,6 +40,9 @@ def train(
     test_dataloader: Optional[DataLoader] = None,
     sweep_name: str = None,
 ) -> None:
+    accelerator.print("Loading model:")
+    accelerator.print(configs.model_configs)
+    accelerator.print(wandb_tracker.config)
     # Load Model
     peft_config: PeftConfig = load_peft_config(
         configs.model_configs.peft_type,
@@ -48,7 +52,7 @@ def train(
 
     if configs.model_configs.task_type == PEFTTaskType.causal_lm:
         model = AutoModelForCausalLM.from_pretrained(
-            configs.model_configs.model_name_or_path
+            configs.model_configs.model_name_or_path, return_dict=True
         )
     elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
         labels_map = LABELS_MAP[
@@ -64,7 +68,7 @@ def train(
         classification_metrics = {
             "roc_auc": evaluate.load("roc_auc"),
             "f1_micro": evaluate.load("f1"),
-            "f1_macro": evaluate.load("f1"),
+            # "f1_macro": evaluate.load("f1"),
         }
 
     model = get_peft_model(model, peft_config)
@@ -100,11 +104,10 @@ def train(
         lr_scheduler,
     )
 
-    # Train
     for epoch in range(configs.training_configs.epochs):
         accelerator.print(f" >>> Epoch {epoch + 1} / {configs.training_configs.epochs}")
+        model.train()
         for train_step, batch in enumerate(tqdm(train_dataloader)):
-            model.train()
             # Manually remove token type ids
             # with accelerator.accumulate(model):
             batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
@@ -142,14 +145,14 @@ def train(
                 step=epoch,
             )
 
-            train_metrics = test(
-                accelerator,
-                model,
-                train_dataloader,
-                classification_metrics,
-                configs.model_configs.task_type,
-                split="train",
-            )
+            # train_metrics = test(
+            #     accelerator,
+            #     model,
+            #     train_dataloader,
+            #     classification_metrics,
+            #     configs.model_configs.task_type,
+            #     split="train",
+            # )
 
             val_metrics = test(
                 accelerator,
@@ -159,19 +162,20 @@ def train(
                 configs.model_configs.task_type,
                 split="val",
             )
-            train_metrics_log = " - ".join(
-                [
-                    f"{metric_name}: {metric_value}"
-                    for metric_name, metric_value in train_metrics.items()
-                ]
-            )
+            # train_metrics_log = " - ".join(
+            #     [
+            #         f"{metric_name}: {metric_value}"
+            #         for metric_name, metric_value in train_metrics.items()
+            #     ]
+            # )
             val_metrics_log = " - ".join(
                 [
                     f"{metric_name}: {metric_value}"
                     for metric_name, metric_value in val_metrics.items()
                 ]
             )
-            metrics_log = train_metrics_log + "-" + val_metrics_log
+            # metrics_log = train_metrics_log + " - " + val_metrics_log
+            metrics_log = val_metrics_log
             accelerator.print(
                 f"Epoch: {epoch+1}/{configs.training_configs.epochs}: {metrics_log}"
             )
@@ -237,7 +241,6 @@ def test(
 ) -> dict:
     model.eval()
     total_loss = 0
-    samples_seen = 0
     for eval_step, batch in enumerate(tqdm(dataloader)):
         batch = {k: v for k, v in batch.items() if k not in ["token_type_ids"]}
         with torch.no_grad():
@@ -247,20 +250,11 @@ def test(
 
         prediction_scores = F.softmax(outputs.logits, dim=1)[:, -1]
         predictions = outputs.logits.argmax(dim=-1)
-        predictions, prediction_scores, references = accelerator.gather(
-            (predictions, prediction_scores, batch["labels"])
-        )
-        # If we are in a multiprocess environment, the last batch has duplicates
-        if accelerator.num_processes > 1:
-            if eval_step == len(dataloader) - 1:
-                predictions = predictions[: len(dataloader.dataset) - samples_seen]
-                prediction_scores = prediction_scores[
-                    : len(dataloader.dataset) - samples_seen
-                ]
-                references = references[: len(dataloader.dataset) - samples_seen]
-            else:
-                samples_seen += references.shape[0]
-
+        references = batch["labels"]
+        # predictions, prediction_scores, references = accelerator.gather(
+        #     (predictions, prediction_scores, batch["labels"])
+        # )
+        
         if task == PEFTTaskType.seq_cls:
             for metric_name, metric in metrics.items():
                 if metric_name == "roc_auc":
@@ -291,6 +285,7 @@ def run_sweep(
     wandb_entity: str,
     wandb_project: str,
     sweep_name: str,
+    outputs_dir: str,
 ) -> None:
     # Initialise tracker
     if accelerator.is_main_process:
@@ -326,7 +321,9 @@ def run_sweep(
     elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
         data_collator = DataCollatorWithPadding(
             tokenizer=tokenizer,
-            max_length=configs.model_configs.model_hyperparameters.max_seq_len,
+            padding="longest"
+            return_tensors="pt"
+            # max_length=configs.model_configs.model_hyperparameters.max_seq_len,
         )
 
     train_dataloader = DataLoader(
@@ -361,4 +358,5 @@ def run_sweep(
         val_dataloader,
         test_dataloader,
         sweep_name,
+        # outputs_dir,
     )

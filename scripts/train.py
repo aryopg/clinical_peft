@@ -72,6 +72,7 @@ def main() -> None:
             wandb_entity,
             wandb_project,
             sweep_name,
+            outputs_dir,
         ),
         entity=wandb_entity,
         project=wandb_project,
