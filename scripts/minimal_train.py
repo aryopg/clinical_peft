@@ -14,6 +14,7 @@ from peft import (
     get_peft_model_state_dict,
     set_peft_model_state_dict,
 )
+from torch.nn import functional as F
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -25,10 +26,11 @@ from transformers import (
 )
 
 batch_size = 32
-model_name_or_path = "emilyalsentzer/Bio_ClinicalBERT"
+model_name_or_path = "bionlp/bluebert_pubmed_mimic_uncased_L-12_H-768_A-12"
 dataset_name = "aryopg/trec-mortality"
 peft_type = PeftType.LORA
 device = "cuda"
+# device = "cpu"
 num_epochs = 20
 max_length = 128
 
@@ -47,7 +49,9 @@ if getattr(tokenizer, "pad_token_id") is None:
     tokenizer.pad_token_id = tokenizer.eos_token_id
 
 datasets = load_dataset(dataset_name)
-metric = evaluate.load("f1")
+roc_auc_metric = evaluate.load("roc_auc")
+f1_micro_metric = evaluate.load("f1")
+f1_macro_metric = evaluate.load("f1")
 
 tokenized_datasets = datasets.map(
     lambda x: tokenizer(
@@ -123,14 +127,26 @@ for epoch in range(num_epochs):
         batch = {k: v.to(device) for k, v in batch.items() if k != "token_type_ids"}
         with torch.no_grad():
             outputs = model(**batch)
+        prediction_scores = F.softmax(outputs.logits, dim=1)[:, -1]
         predictions = outputs.logits.argmax(dim=-1)
         predictions, references = predictions, batch["labels"]
-        metric.add_batch(
+
+        roc_auc_metric.add_batch(
+            prediction_scores=prediction_scores,
+            references=references,
+        )
+        f1_micro_metric.add_batch(
             predictions=predictions,
             references=references,
         )
-    print(outputs)
-    print(batch["labels"])
+        f1_macro_metric.add_batch(
+            predictions=predictions,
+            references=references,
+        )
 
-    eval_metric = metric.compute(average="micro")
+    eval_metric = {
+        "roc_auc": roc_auc_metric.compute(),
+        "f1_micro": f1_micro_metric.compute(average="micro"),
+        "f1_macro": f1_macro_metric.compute(average="macro"),
+    }
     print(f"epoch {epoch}:", eval_metric)
