@@ -129,6 +129,8 @@ for epoch in range(num_epochs):
             predictions=predictions,
             references=references,
         )
+    print(outputs)
+    print(batch["labels"])
 
     eval_metric = metric.compute(average="micro")
     print(f"epoch {epoch}:", eval_metric)
