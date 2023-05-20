@@ -279,11 +279,15 @@ def test(
     elif task == PEFTTaskType.seq_cls:
         for metric_name, metric in metrics.items():
             if metric_name == "roc_auc":
-                eval_metrics[f"{split}_{metric_name}"] = metric.compute()
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute()["roc_auc"]
             elif metric_name == "f1_micro":
-                eval_metrics[f"{split}_{metric_name}"] = metric.compute(average="micro")
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute(
+                    average="micro"
+                )["f1"]
             elif metric_name == "f1_macro":
-                eval_metrics[f"{split}_{metric_name}"] = metric.compute(average="macro")
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute(
+                    average="macro"
+                )["f1"]
 
     return eval_metrics
 
