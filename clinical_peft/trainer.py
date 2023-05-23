@@ -26,7 +26,7 @@ from transformers import (
 
 from .configs import Configs, PEFTTaskType
 from .constants import LABELS_MAP
-from .utils.common_utils import delete_files_in_directory
+from .utils.common_utils import delete_files_in_directory, setup_random_seed
 from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config
 
@@ -301,6 +301,8 @@ def run_sweep(
     sweep_name: str,
     outputs_dir: str,
 ) -> None:
+    setup_random_seed(configs.training_configs.random_seed)
+
     # Initialise tracker
     if accelerator.is_main_process:
         accelerator.init_trackers(
