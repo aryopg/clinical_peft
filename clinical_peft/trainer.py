@@ -78,11 +78,11 @@ def train(
 
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
-    # else:
-    #     # Only train the classification head
-    #     for name, param in model.named_parameters():
-    #         if not name.startswith("classifier"):
-    #             param.requires_grad = False
+    else:
+        # Only train the classification head
+        for name, param in model.named_parameters():
+            if not name.startswith("classifier"):
+                param.requires_grad = False
 
     # optimizer
     optimizer = torch.optim.AdamW(
