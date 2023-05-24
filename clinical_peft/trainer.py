@@ -239,3 +239,8 @@ def run_sweep(
         eval_dataloader,
         outputs_dir,
     )
+
+    # cleanup and sleep just to be sure the cuda memory is freed
+    accelerator.free_memory()
+    torch.cuda.empty_cache()
+    time.sleep(10)
