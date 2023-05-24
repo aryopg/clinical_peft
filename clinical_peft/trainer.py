@@ -24,7 +24,7 @@ from transformers import (
     get_linear_schedule_with_warmup,
 )
 
-from .configs import Configs, PEFTTaskType
+from .configs import Configs, TaskType
 from .constants import LABELS_MAP
 from .utils.common_utils import delete_files_in_directory, setup_random_seed
 from .utils.dataset_utils import preprocess_dataset
@@ -46,19 +46,11 @@ def train(
 
     num_epochs = configs.training_configs.epochs
     # Load Model
-    peft_config: PeftConfig = load_peft_config(
-        configs.model_configs.peft_type,
-        configs.model_configs.task_type,
-        wandb_tracker.config,
-    )
-
-    accelerator.print(peft_config)
-
-    if configs.model_configs.task_type == PEFTTaskType.causal_lm:
+    if configs.model_configs.task_type == TaskType.causal_lm:
         model = AutoModelForCausalLM.from_pretrained(
             configs.model_configs.model_name_or_path, return_dict=True
         )
-    elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
+    elif configs.model_configs.task_type == TaskType.seq_cls:
         labels_map = LABELS_MAP[
             configs.training_configs.dataset_paths[0].split("/")[-1]
         ]
@@ -75,8 +67,22 @@ def train(
             "f1_macro": evaluate.load("f1"),
         }
 
-    model = get_peft_model(model, peft_config)
-    model.print_trainable_parameters()
+    if configs.model_configs.peft_type:
+        peft_config: PeftConfig = load_peft_config(
+            configs.model_configs.peft_type,
+            configs.model_configs.task_type,
+            wandb_tracker.config,
+        )
+
+        accelerator.print(peft_config)
+
+        model = get_peft_model(model, peft_config)
+        model.print_trainable_parameters()
+    # else:
+    #     # Only train the classification head
+    #     for name, param in model.named_parameters():
+    #         if not name.startswith("classifier"):
+    #             param.requires_grad = False
 
     # optimizer
     optimizer = torch.optim.AdamW(
@@ -85,9 +91,9 @@ def train(
     )
 
     # lr scheduler
-    if configs.model_configs.task_type == PEFTTaskType.causal_lm:
+    if configs.model_configs.task_type == TaskType.causal_lm:
         num_training_steps = min(len(train_dataloader), configs.training_configs.steps)
-    elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
+    elif configs.model_configs.task_type == TaskType.seq_cls:
         num_training_steps = len(train_dataloader) * num_epochs
     lr_scheduler = get_linear_schedule_with_warmup(
         optimizer=optimizer,
@@ -240,7 +246,7 @@ def test(
     model: PeftModel,
     dataloader: DataLoader,
     metrics: Dict[str, EvaluationModule],
-    task: PEFTTaskType,
+    task: TaskType,
     split="val",
 ) -> dict:
     model.eval()
@@ -253,7 +259,7 @@ def test(
         loss = outputs.loss
         total_loss += loss.detach().float()
 
-        if task == PEFTTaskType.seq_cls:
+        if task == TaskType.seq_cls:
             prediction_scores = F.softmax(outputs.logits, dim=1)[:, -1]
             predictions = outputs.logits.argmax(dim=-1)
             references = batch["labels"]
@@ -274,10 +280,10 @@ def test(
     eval_metrics = {
         f"{split}_loss": eval_loss,
     }
-    if task == PEFTTaskType.causal_lm:
+    if task == TaskType.causal_lm:
         eval_ppl = torch.exp(eval_loss)
         eval_metrics[f"{split}_ppl"] = eval_ppl
-    elif task == PEFTTaskType.seq_cls:
+    elif task == TaskType.seq_cls:
         for metric_name, metric in metrics.items():
             if metric_name == "roc_auc":
                 eval_metrics[f"{split}_{metric_name}"] = metric.compute()["roc_auc"]
@@ -293,7 +299,7 @@ def test(
     return eval_metrics
 
 
-def run_sweep(
+def run(
     accelerator: Accelerator,
     configs: Configs,
     wandb_entity: str,
@@ -306,7 +312,8 @@ def run_sweep(
     # Initialise tracker
     if accelerator.is_main_process:
         accelerator.init_trackers(
-            project_name=wandb_project, init_kwargs={"wandb": {"entity": wandb_entity}}
+            project_name=wandb_project,
+            init_kwargs={"wandb": {"entity": wandb_entity, "name": sweep_name}},
         )
         wandb_tracker: WandBTracker = accelerator.get_tracker("wandb")
     accelerator.wait_for_everyone()
@@ -339,9 +346,9 @@ def run_sweep(
     if getattr(tokenizer, "pad_token_id") is None:
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id
-    if configs.model_configs.task_type == PEFTTaskType.causal_lm:
+    if configs.model_configs.task_type == TaskType.causal_lm:
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
-    elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
+    elif configs.model_configs.task_type == TaskType.seq_cls:
         data_collator = DataCollatorWithPadding(
             tokenizer=tokenizer,
             padding="longest",

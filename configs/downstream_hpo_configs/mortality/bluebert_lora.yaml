@@ -1,7 +1,7 @@
 model_configs:
   peft_type: "lora"
   task_type: "seq_cls"
-  model_name_or_path: "roberta-large"
+  model_name_or_path: "bionlp/bluebert_pubmed_mimic_uncased_L-12_H-768_A-12"
   peft_hyperparameters:
     method: bayes
     metric:
@@ -26,9 +26,9 @@ training_configs:
   device: 0
   num_process: 8
   test_size: 0.1
-  epochs: 2
+  epochs: 20
   steps: 1000000
-  batch_size: 10
+  batch_size: 32
   log_steps: 1000000
   eval_steps: 1000000  # Only evaluate at the end
   checkpoint_steps: 1000000  # Only checkpoint at the end

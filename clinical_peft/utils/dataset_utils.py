@@ -1,7 +1,7 @@
 from datasets import DatasetDict
 from transformers import PreTrainedTokenizer
 
-from ..configs import Configs, PEFTTaskType
+from ..configs import Configs, TaskType
 
 
 def preprocess_dataset(
@@ -9,7 +9,7 @@ def preprocess_dataset(
     configs: Configs,
     tokenizer: PreTrainedTokenizer,
 ) -> DatasetDict:
-    if configs.model_configs.task_type == PEFTTaskType.causal_lm:
+    if configs.model_configs.task_type == TaskType.causal_lm:
         processed_datasets = dataset.map(
             lambda x: tokenizer(
                 x["text"],
@@ -22,7 +22,7 @@ def preprocess_dataset(
             load_from_cache_file=True,
             desc="Running tokenizer on dataset",
         )
-    elif configs.model_configs.task_type == PEFTTaskType.seq_cls:
+    elif configs.model_configs.task_type == TaskType.seq_cls:
         processed_datasets = dataset.map(
             lambda x: tokenizer(
                 x["text"],

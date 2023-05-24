@@ -1,10 +1,10 @@
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
 
-class PEFTTaskType(str, Enum):
+class TaskType(str, Enum):
     causal_lm = "causal_lm"
     seq2seq_lm = "seq2seq_lm"
     seq_cls = "seq_cls"
@@ -27,10 +27,10 @@ class ModelHyperparameters(BaseModel):
 
 
 class ModelConfigs(BaseModel):
-    peft_type: PEFTType
-    task_type: PEFTTaskType
+    peft_type: Optional[PEFTType]
+    task_type: TaskType
     model_name_or_path: str = "data/llama/7B"
-    peft_hyperparameters: dict
+    peft_hyperparameters: Optional[dict]
     model_hyperparameters: ModelHyperparameters
 
     class Config:
