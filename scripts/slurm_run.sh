@@ -35,8 +35,7 @@ conda activate ${PROJECT_NAME}
 echo "Running experiment"
 # limit of 12 GB GPU is hidden 256 and batch size 256
 accelerate launch --mixed_precision=fp16 scripts/train.py \
---config_filepath=$1 \
---log_to_wandb
+--config_filepath=$1
 
 OUTPUT_DIR=${SCRATCH_HOME}/${PROJECT_NAME}/outputs/
 OUTPUT_HOME=${PWD}/exps/
