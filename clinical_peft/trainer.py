@@ -78,11 +78,11 @@ def train(
 
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
-    else:
-        # Only train the classification head
-        for name, param in model.named_parameters():
-            if not name.startswith("classifier"):
-                param.requires_grad = False
+    # else:
+    #     # Only train the classification head
+    #     for name, param in model.named_parameters():
+    #         if not name.startswith("classifier"):
+    #             param.requires_grad = False
 
     # optimizer
     optimizer = torch.optim.AdamW(
@@ -95,12 +95,12 @@ def train(
         num_training_steps = min(len(train_dataloader), configs.training_configs.steps)
     elif configs.model_configs.task_type == TaskType.seq_cls:
         num_training_steps = len(train_dataloader) * num_epochs
-    lr_scheduler = get_linear_schedule_with_warmup(
-        optimizer=optimizer,
-        num_warmup_steps=configs.model_configs.model_hyperparameters.warmup_steps_ratio
-        * num_training_steps,
-        num_training_steps=num_training_steps,
-    )
+    # lr_scheduler = get_linear_schedule_with_warmup(
+    #     optimizer=optimizer,
+    #     num_warmup_steps=configs.model_configs.model_hyperparameters.warmup_steps_ratio
+    #     * num_training_steps,
+    #     num_training_steps=num_training_steps,
+    # )
 
     (
         model,
@@ -108,14 +108,14 @@ def train(
         val_dataloader,
         test_dataloader,
         optimizer,
-        lr_scheduler,
+        # lr_scheduler,
     ) = accelerator.prepare(
         model,
         train_dataloader,
         val_dataloader,
         test_dataloader,
         optimizer,
-        lr_scheduler,
+        # lr_scheduler,
     )
 
     for epoch in range(num_epochs):
@@ -129,7 +129,7 @@ def train(
                 loss = outputs.loss
                 accelerator.backward(loss)
                 optimizer.step()
-                lr_scheduler.step()
+                # lr_scheduler.step()
                 optimizer.zero_grad()
 
             train_loss = loss.detach().float()
