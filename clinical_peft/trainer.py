@@ -68,10 +68,12 @@ def train(
             "f1_micro": evaluate.load("f1"),
             "f1_macro": evaluate.load("f1"),
         }
-        label_counts = Counter(train_dataloader.dataset["labels"])
+        train_labels = train_dataloader.dataset["labels"]
+        num_train_data = len(train_labels)
+        label_counts = Counter(train_labels)
         class_weights = torch.Tensor(
             [
-                len(train_dataloader) / (len(labels_map) * label_counts[i])
+                num_train_data / (len(labels_map) * label_counts[i])
                 for i in range(len(labels_map))
             ]
         ).to(accelerator.device)
