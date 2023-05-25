@@ -68,7 +68,6 @@ def train(
             "f1_micro": evaluate.load("f1"),
             "f1_macro": evaluate.load("f1"),
         }
-        print(train_dataloader.dataset)
         label_counts = Counter(train_dataloader.dataset["labels"])
         class_weights = torch.Tensor(
             [
@@ -137,9 +136,6 @@ def train(
                 }
 
                 outputs = model(**batch)
-                print("outputs.logits: ", outputs.logits)
-                print("labels: ", labels)
-                print("class_weights: ", class_weights)
                 # loss = outputs.loss
                 loss = F.cross_entropy(outputs.logits, labels, weight=class_weights)
                 accelerator.backward(loss)
