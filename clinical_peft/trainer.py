@@ -136,11 +136,11 @@ def train(
                     for k, v in batch.items()
                     if k not in ["token_type_ids", "labels"]
                 }
+
+                outputs = model(**batch)
                 print("outputs.logits: ", outputs.logits)
                 print("labels: ", labels)
                 print("class_weights: ", class_weights)
-
-                outputs = model(**batch)
                 # loss = outputs.loss
                 loss = F.cross_entropy(outputs.logits, labels, weight=class_weights)
                 accelerator.backward(loss)
