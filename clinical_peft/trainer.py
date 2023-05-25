@@ -1,5 +1,6 @@
 import os
 import time
+from collections import Counter
 from typing import Dict, List, Optional
 
 import evaluate
@@ -50,6 +51,7 @@ def train(
         model = AutoModelForCausalLM.from_pretrained(
             configs.model_configs.model_name_or_path, return_dict=True
         )
+        class_weights = None
     elif configs.model_configs.task_type == TaskType.seq_cls:
         labels_map = LABELS_MAP[
             configs.training_configs.dataset_paths[0].split("/")[-1]
@@ -66,6 +68,14 @@ def train(
             "f1_micro": evaluate.load("f1"),
             "f1_macro": evaluate.load("f1"),
         }
+        print(train_dataloader.dataset)
+        label_counts = Counter(train_dataloader.dataset["labels"])
+        class_weights = torch.Tensor(
+            [
+                len(train_dataloader) / (len(labels_map) * label_counts[i])
+                for i in range(len(labels_map))
+            ]
+        )
 
     if configs.model_configs.peft_type:
         peft_config: PeftConfig = load_peft_config(
@@ -78,11 +88,6 @@ def train(
 
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
-    # else:
-    #     # Only train the classification head
-    #     for name, param in model.named_parameters():
-    #         if not name.startswith("classifier"):
-    #             param.requires_grad = False
 
     # optimizer
     optimizer = torch.optim.AdamW(
@@ -91,16 +96,16 @@ def train(
     )
 
     # lr scheduler
+    warmup_steps_ratio = configs.model_configs.model_hyperparameters.warmup_steps_ratio
     if configs.model_configs.task_type == TaskType.causal_lm:
         num_training_steps = min(len(train_dataloader), configs.training_configs.steps)
     elif configs.model_configs.task_type == TaskType.seq_cls:
         num_training_steps = len(train_dataloader) * num_epochs
-    # lr_scheduler = get_linear_schedule_with_warmup(
-    #     optimizer=optimizer,
-    #     num_warmup_steps=configs.model_configs.model_hyperparameters.warmup_steps_ratio
-    #     * num_training_steps,
-    #     num_training_steps=num_training_steps,
-    # )
+    lr_scheduler = get_linear_schedule_with_warmup(
+        optimizer=optimizer,
+        num_warmup_steps=warmup_steps_ratio,
+        num_training_steps=num_training_steps,
+    )
 
     (
         model,
@@ -108,14 +113,14 @@ def train(
         val_dataloader,
         test_dataloader,
         optimizer,
-        # lr_scheduler,
+        lr_scheduler,
     ) = accelerator.prepare(
         model,
         train_dataloader,
         val_dataloader,
         test_dataloader,
         optimizer,
-        # lr_scheduler,
+        lr_scheduler,
     )
 
     for epoch in range(num_epochs):
@@ -124,12 +129,19 @@ def train(
         for train_step, batch in enumerate(tqdm(train_dataloader)):
             # Manually remove token type ids
             with accelerator.accumulate(model):
-                batch = {k: v for k, v in batch.items() if k != "token_type_ids"}
+                labels = batch["labels"]
+                batch = {
+                    k: v
+                    for k, v in batch.items()
+                    if k not in ["token_type_ids", "labels"]
+                }
+
                 outputs = model(**batch)
-                loss = outputs.loss
+                # loss = outputs.loss
+                loss = F.cross_entropy(outputs.logits, labels, weight=class_weights)
                 accelerator.backward(loss)
                 optimizer.step()
-                # lr_scheduler.step()
+                lr_scheduler.step()
                 optimizer.zero_grad()
 
             train_loss = loss.detach().float()
