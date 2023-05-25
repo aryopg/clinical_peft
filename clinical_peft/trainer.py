@@ -76,6 +76,7 @@ def train(
                 for i in range(len(labels_map))
             ]
         )
+        class_weights.to(accelerator.device)
 
     if configs.model_configs.peft_type:
         peft_config: PeftConfig = load_peft_config(
