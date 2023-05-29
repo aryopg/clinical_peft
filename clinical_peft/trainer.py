@@ -182,7 +182,7 @@ def train(
                 train_dataloader,
                 classification_metrics,
                 configs.model_configs.task_type,
-                multiclass="ovo" if len(labels_map) > 2 else None,
+                multi_class="ovo" if len(labels_map) > 2 else None,
                 split="train",
             )
 
@@ -192,7 +192,7 @@ def train(
                 val_dataloader,
                 classification_metrics,
                 configs.model_configs.task_type,
-                multiclass="ovo" if len(labels_map) > 2 else None,
+                multi_class="ovo" if len(labels_map) > 2 else None,
                 split="val",
             )
             train_metrics_log = " - ".join(
