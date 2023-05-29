@@ -63,11 +63,7 @@ def train(
             label2id=labels_map,
             id2label={v: k for k, v in labels_map.items()},
         )
-        classification_metrics = {
-            "roc_auc": evaluate.load("roc_auc"),
-            "f1_micro": evaluate.load("f1"),
-            "f1_macro": evaluate.load("f1"),
-        }
+
         train_labels = train_dataloader.dataset["labels"]
         num_train_data = len(train_labels)
         label_counts = Counter(train_labels)
@@ -77,6 +73,17 @@ def train(
                 for i in range(len(labels_map))
             ]
         ).to(accelerator.device)
+
+        if len(labels_map) > 2:
+            roc_auc_metrics = evaluate.load("roc_auc", "multiclass")
+        else:
+            roc_auc_metrics = evaluate.load("roc_auc")
+
+        classification_metrics = {
+            "roc_auc": roc_auc_metrics,
+            "f1_micro": evaluate.load("f1"),
+            "f1_macro": evaluate.load("f1"),
+        }
 
     if configs.model_configs.peft_type:
         peft_config: PeftConfig = load_peft_config(
@@ -175,6 +182,7 @@ def train(
                 train_dataloader,
                 classification_metrics,
                 configs.model_configs.task_type,
+                multiclass="ovo" if len(labels_map) > 2 else None,
                 split="train",
             )
 
@@ -184,6 +192,7 @@ def train(
                 val_dataloader,
                 classification_metrics,
                 configs.model_configs.task_type,
+                multiclass="ovo" if len(labels_map) > 2 else None,
                 split="val",
             )
             train_metrics_log = " - ".join(
@@ -213,6 +222,7 @@ def train(
         test_dataloader,
         classification_metrics,
         configs.model_configs.task_type,
+        multiclass="ovo" if len(labels_map) > 2 else None,
         split="test",
     )
     metrics_log = " - ".join(
@@ -260,6 +270,7 @@ def test(
     dataloader: DataLoader,
     metrics: Dict[str, EvaluationModule],
     task: TaskType,
+    multiclass: Optional[str] = None,
     split="val",
 ) -> dict:
     model.eval()
@@ -299,7 +310,9 @@ def test(
     elif task == TaskType.seq_cls:
         for metric_name, metric in metrics.items():
             if metric_name == "roc_auc":
-                eval_metrics[f"{split}_{metric_name}"] = metric.compute()["roc_auc"]
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute(multiclass)[
+                    "roc_auc"
+                ]
             elif metric_name == "f1_micro":
                 eval_metrics[f"{split}_{metric_name}"] = metric.compute(
                     average="micro"
