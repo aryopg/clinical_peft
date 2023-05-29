@@ -222,7 +222,7 @@ def train(
         test_dataloader,
         classification_metrics,
         configs.model_configs.task_type,
-        multiclass="ovo" if len(labels_map) > 2 else None,
+        multi_class="ovo" if len(labels_map) > 2 else None,
         split="test",
     )
     metrics_log = " - ".join(
@@ -270,7 +270,7 @@ def test(
     dataloader: DataLoader,
     metrics: Dict[str, EvaluationModule],
     task: TaskType,
-    multiclass: Optional[str] = None,
+    multi_class: Optional[str] = None,
     split="val",
 ) -> dict:
     model.eval()
@@ -286,7 +286,7 @@ def test(
         if task == TaskType.seq_cls:
             prediction_scores = F.softmax(outputs.logits, dim=1)
             predictions = outputs.logits.argmax(dim=-1)
-            if not multiclass:
+            if not multi_class:
                 prediction_scores = prediction_scores[:, -1]
             references = batch["labels"]
             predictions, prediction_scores, references = accelerator.gather(
@@ -312,9 +312,9 @@ def test(
     elif task == TaskType.seq_cls:
         for metric_name, metric in metrics.items():
             if metric_name == "roc_auc":
-                eval_metrics[f"{split}_{metric_name}"] = metric.compute(multiclass)[
-                    "roc_auc"
-                ]
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute(
+                    multi_class=multi_class
+                )["roc_auc"]
             elif metric_name == "f1_micro":
                 eval_metrics[f"{split}_{metric_name}"] = metric.compute(
                     average="micro"
