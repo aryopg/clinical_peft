@@ -284,8 +284,10 @@ def test(
         total_loss += loss.detach().float()
 
         if task == TaskType.seq_cls:
-            prediction_scores = F.softmax(outputs.logits, dim=1)[:, -1]
+            prediction_scores = F.softmax(outputs.logits, dim=1)
             predictions = outputs.logits.argmax(dim=-1)
+            if not multiclass:
+                prediction_scores = prediction_scores[:, -1]
             references = batch["labels"]
             predictions, prediction_scores, references = accelerator.gather(
                 (predictions, prediction_scores, batch["labels"])
