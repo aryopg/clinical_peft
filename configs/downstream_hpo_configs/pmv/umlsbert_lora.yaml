@@ -1,7 +1,7 @@
 model_configs:
   peft_type: "lora"
   task_type: "seq_cls"
-  model_name_or_path: "michiyasunaga/BioLinkBERT-base"
+  model_name_or_path: "aryopg/umlsbert"
   peft_hyperparameters:
     method: bayes
     metric:
@@ -15,9 +15,10 @@ model_configs:
       lora_dropout: 
         values: [0.0, 0.1, 0.2]
   model_hyperparameters:
-    learning_rate: 0.0001
+    learning_rate: 0.00005
+    warmup_steps_ratio: 0.06
     max_seq_len: 128
-    gradient_accumulation_steps: 1
+    gradient_accumulation_steps: 2
 training_configs:
   dataset_paths:
     - aryopg/trec-pmv
@@ -25,9 +26,9 @@ training_configs:
   device: 0
   num_process: 8
   test_size: 0.1
-  epochs: 5
+  epochs: 10
   steps: 1000000
-  batch_size: 16
+  batch_size: 32
   log_steps: 1000000
   eval_steps: 1000000  # Only evaluate at the end
   checkpoint_steps: 1000000  # Only checkpoint at the end
