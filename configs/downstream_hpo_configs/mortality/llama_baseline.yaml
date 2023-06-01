@@ -7,7 +7,7 @@ model_configs:
     learning_rate: 0.00005
     warmup_steps_ratio: 0.06
     max_seq_len: 128
-    gradient_accumulation_steps: 2
+    gradient_accumulation_steps: 10
 training_configs:
   dataset_paths:
     - aryopg/trec-mortality
@@ -17,7 +17,7 @@ training_configs:
   test_size: 0.1
   epochs: 10
   steps: 1000000
-  batch_size: 4
+  batch_size: 2
   log_steps: 1000000
   eval_steps: 1000000  # Only evaluate at the end
   checkpoint_steps: 1000000  # Only checkpoint at the end
