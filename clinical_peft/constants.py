@@ -23,3 +23,7 @@ LABELS_MAP = {
     "trec-pmv": {"LT1W": 0, "GT1W": 1},
     "trec-los": {"LT3D": 0, "3DTO7D": 1, "1WTO2W": 2, "GT2W": 3},
 }
+
+# PMC-LLaMA does not use these special characters, we're reintroducing it
+LLAMA_SPECIAL_CHARACTERS = {"unk": "<unk>", "bos": "<s>", "pad": "</s>", "eos": "</s>"}
+LLAMA_SPECIAL_CHARACTER_IDS = {"unk": 0, "bos": 1, "pad": 2, "eos": 2}

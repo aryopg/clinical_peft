@@ -26,7 +26,7 @@ from transformers import (
 )
 
 from .configs import Configs, TaskType
-from .constants import LABELS_MAP
+from .constants import LABELS_MAP, LLAMA_SPECIAL_CHARACTER_IDS, LLAMA_SPECIAL_CHARACTERS
 from .utils.common_utils import delete_files_in_directory, setup_random_seed
 from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config
@@ -378,6 +378,19 @@ def run(
     accelerator.wait_for_everyone()
 
     # TODO: PMC-LLaMA doesn't specify these special characters
+    if "PMC_LLAMA" in configs.model_configs.model_name_or_path:
+        for special_char in ["unk", "bos", "pad", "eos"]:
+            setattr(
+                tokenizer,
+                special_char + "_token",
+                LLAMA_SPECIAL_CHARACTERS[special_char],
+            )
+            setattr(
+                tokenizer,
+                special_char + "_token_id",
+                LLAMA_SPECIAL_CHARACTER_IDS[special_char],
+            )
+
     if getattr(tokenizer, "pad_token_id") is None:
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id
@@ -388,7 +401,6 @@ def run(
             tokenizer=tokenizer,
             padding="longest",
             return_tensors="pt",
-            # max_length=configs.model_configs.model_hyperparameters.max_seq_len,
         )
 
     train_dataloader = DataLoader(
