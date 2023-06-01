@@ -96,6 +96,13 @@ def train(
 
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
+    else:
+        if "llama" in configs.model_configs.model_name_or_path:
+            for name, param in model.named_parameters():
+                if name.startswith("classifier") or name.startswith("score"):
+                    param.requires_grad = True
+                else:
+                    param.requires_grad = False
 
     # optimizer
     optimizer = torch.optim.AdamW(
