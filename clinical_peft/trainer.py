@@ -155,6 +155,8 @@ def train(
                 }
 
                 outputs = model(**batch)
+                print("outputs.logits: ", outputs.logits)
+                print("labels: ", labels)
                 # loss = outputs.loss
                 loss = F.cross_entropy(outputs.logits, labels, weight=class_weights)
                 accelerator.backward(loss)
