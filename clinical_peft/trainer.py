@@ -52,6 +52,8 @@ def train(
             configs.model_configs.model_name_or_path, return_dict=True
         )
         class_weights = None
+        performance_metrics = None
+        multi_class = None
     elif configs.model_configs.task_type == TaskType.seq_cls:
         labels_map = LABELS_MAP[
             configs.training_configs.dataset_paths[0].split("/")[-1]
@@ -79,11 +81,12 @@ def train(
         else:
             roc_auc_metrics = evaluate.load("roc_auc")
 
-        classification_metrics = {
+        performance_metrics = {
             "roc_auc": roc_auc_metrics,
             "f1_micro": evaluate.load("f1"),
             "f1_macro": evaluate.load("f1"),
         }
+        multi_class = "ovo" if len(labels_map) > 2 else None
 
     if configs.model_configs.peft_type:
         peft_config: PeftConfig = load_peft_config(
@@ -177,6 +180,7 @@ def train(
 
                 if (train_step + 1) >= num_training_steps:
                     break
+        # For classification task, log metrics at the end of an epoch
         if configs.model_configs.task_type == "seq_cls":
             accelerator.log(
                 {"train_loss": train_loss},
@@ -187,8 +191,8 @@ def train(
                 accelerator,
                 model,
                 train_dataloader,
-                classification_metrics,
                 configs.model_configs.task_type,
+                performance_metrics,
                 multi_class="ovo" if len(labels_map) > 2 else None,
                 split="train",
             )
@@ -197,8 +201,8 @@ def train(
                 accelerator,
                 model,
                 val_dataloader,
-                classification_metrics,
                 configs.model_configs.task_type,
+                performance_metrics,
                 multi_class="ovo" if len(labels_map) > 2 else None,
                 split="val",
             )
@@ -227,9 +231,9 @@ def train(
         accelerator,
         model,
         test_dataloader,
-        classification_metrics,
         configs.model_configs.task_type,
-        multi_class="ovo" if len(labels_map) > 2 else None,
+        performance_metrics,
+        multi_class=multi_class,
         split="test",
     )
     metrics_log = " - ".join(
@@ -275,8 +279,8 @@ def test(
     accelerator: Accelerator,
     model: PeftModel,
     dataloader: DataLoader,
-    metrics: Dict[str, EvaluationModule],
     task: TaskType,
+    metrics: Optional[Dict[str, EvaluationModule]] = None,
     multi_class: Optional[str] = None,
     split="val",
 ) -> dict:
@@ -410,6 +414,7 @@ def run(
         batch_size=configs.training_configs.batch_size,
         pin_memory=True,
     )
+    val_dataloader, test_dataloader = None, None
     if "validation" in dataset:
         val_dataloader = DataLoader(
             dataset["validation"],
