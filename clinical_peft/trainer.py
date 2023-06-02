@@ -154,11 +154,12 @@ def train(
                     if k not in ["token_type_ids", "labels"]
                 }
 
-                outputs = model(**batch)
-                print("outputs.logits: ", outputs.logits.size())
-                print("labels: ", labels.size())
-                # loss = outputs.loss
-                loss = F.cross_entropy(outputs.logits, labels, weight=class_weights)
+                if class_weights is not None:
+                    outputs = model(**batch)
+                    loss = F.cross_entropy(outputs.logits, labels, weight=class_weights)
+                else:
+                    outputs = model(**batch, labels=labels)
+                    loss = outputs.loss
                 accelerator.backward(loss)
                 optimizer.step()
                 lr_scheduler.step()
