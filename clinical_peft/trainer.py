@@ -80,17 +80,20 @@ def train(
                 ]
             ).to(accelerator.device)
 
-        if not configs.training_configs.multilabel and len(labels_map) > 2:
-            roc_auc_metrics = evaluate.load("roc_auc", "multiclass")
-        elif not configs.training_configs.multilabel and len(labels_map) == 2:
-            roc_auc_metrics = evaluate.load("roc_auc")
-        elif configs.training_configs.multilabel:
+        if not configs.training_configs.multilabel:
+            f1_metrics = evaluate.load("f1")
+            if len(labels_map) > 2:
+                roc_auc_metrics = evaluate.load("roc_auc", "multiclass")
+            elif len(labels_map) == 2:
+                roc_auc_metrics = evaluate.load("roc_auc")
+        else:
+            f1_metrics = evaluate.load("f1", "multilabel")
             roc_auc_metrics = evaluate.load("roc_auc", "multilabel")
 
         performance_metrics = {
             "roc_auc": roc_auc_metrics,
-            "f1_micro": evaluate.load("f1"),
-            "f1_macro": evaluate.load("f1"),
+            "f1_micro": f1_metrics,
+            "f1_macro": f1_metrics,
         }
         multi_class = "ovo" if len(labels_map) > 2 else None
 
