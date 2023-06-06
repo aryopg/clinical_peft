@@ -203,7 +203,7 @@ def train(
                 train_dataloader,
                 configs.model_configs.task_type,
                 performance_metrics,
-                multi_label=configs.training_configs.multilabel
+                multi_label=configs.training_configs.multilabel,
                 multi_class="ovo" if len(labels_map) > 2 else None,
                 split="train",
             )
@@ -214,7 +214,7 @@ def train(
                 val_dataloader,
                 configs.model_configs.task_type,
                 performance_metrics,
-                multi_label=configs.training_configs.multilabel
+                multi_label=configs.training_configs.multilabel,
                 multi_class="ovo" if len(labels_map) > 2 else None,
                 split="val",
             )
@@ -245,7 +245,7 @@ def train(
         test_dataloader,
         configs.model_configs.task_type,
         performance_metrics,
-        multi_label=configs.training_configs.multilabel
+        multi_label=configs.training_configs.multilabel,
         multi_class=multi_class,
         split="test",
     )
