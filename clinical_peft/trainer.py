@@ -90,7 +90,8 @@ def train(
                 roc_auc_metrics = evaluate.load("roc_auc")
         else:
             f1_metrics = evaluate.load("f1", "multilabel")
-            roc_auc_metrics = evaluate.load("roc_auc", "multilabel")
+            # roc_auc_metrics = evaluate.load("roc_auc", "multilabel")
+            roc_auc_metrics = None
 
         performance_metrics = {
             "roc_auc": roc_auc_metrics,
@@ -327,6 +328,8 @@ def test(
             )
 
             for metric_name, metric in metrics.items():
+                if metric is None:
+                    continue
                 if metric_name == "roc_auc":
                     metric.add_batch(
                         prediction_scores=prediction_scores, references=references
@@ -344,6 +347,8 @@ def test(
         eval_metrics[f"{split}_ppl"] = eval_ppl
     elif task == TaskType.seq_cls:
         for metric_name, metric in metrics.items():
+            if metric is None:
+                continue
             if metric_name == "roc_auc":
                 eval_metrics[f"{split}_{metric_name}"] = metric.compute(
                     multi_class=multi_class
