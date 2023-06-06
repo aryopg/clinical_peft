@@ -80,10 +80,12 @@ def train(
                 ]
             ).to(accelerator.device)
 
+        multi_class = None
         if not configs.training_configs.multilabel:
             f1_metrics = evaluate.load("f1")
             if len(labels_map) > 2:
                 roc_auc_metrics = evaluate.load("roc_auc", "multiclass")
+                multi_class = "ovo"
             elif len(labels_map) == 2:
                 roc_auc_metrics = evaluate.load("roc_auc")
         else:
@@ -95,7 +97,6 @@ def train(
             "f1_micro": f1_metrics,
             "f1_macro": f1_metrics,
         }
-        multi_class = "ovo" if len(labels_map) > 2 else None
 
     if configs.model_configs.peft_type:
         peft_config: PeftConfig = load_peft_config(
