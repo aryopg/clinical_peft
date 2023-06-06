@@ -39,6 +39,7 @@ class ModelConfigs(BaseModel):
 
 class TrainingConfigs(BaseModel):
     dataset_paths: List[str]
+    multilabel: bool = False
     random_seed: int = 1234
     device: int = 0
     num_process: int = 8

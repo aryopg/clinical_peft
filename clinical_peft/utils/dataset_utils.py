@@ -1,7 +1,23 @@
+import numpy as np
 from datasets import DatasetDict
 from transformers import PreTrainedTokenizer
 
 from ..configs import Configs, TaskType
+from ..constants import LABELS_MAP
+
+
+def preprocess_multilabel(sample, dataset_name):
+    labels = np.zeros(
+        [
+            len(LABELS_MAP[dataset_name]),
+        ]
+    )
+    for label in sample["label"].split(","):
+        labels[LABELS_MAP[dataset_name][label]] = 1
+
+    sample["label"] = labels
+
+    return sample
 
 
 def preprocess_dataset(
@@ -23,6 +39,15 @@ def preprocess_dataset(
             desc="Running tokenizer on dataset",
         )
     elif configs.model_configs.task_type == TaskType.seq_cls:
+        if configs.training_configs.multilabel:
+            dataset = dataset.map(
+                lambda x: preprocess_multilabel(
+                    x, configs.training_configs.dataset_paths[0].split("/")[-1]
+                ),
+                num_proc=configs.training_configs.num_process,
+                desc="Preprocessing multilabel",
+            )
+
         processed_datasets = dataset.map(
             lambda x: tokenizer(
                 x["text"],

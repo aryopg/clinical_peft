@@ -8,6 +8,9 @@ from peft import (
     TaskType,
 )
 
+from .diagnoses import DIAGNOSES_MAP
+from .procedures import PROCEDURES_MAP
+
 TASK_TYPE = {"causal_lm": TaskType.CAUSAL_LM, "seq_cls": TaskType.SEQ_CLS}
 PEFT_CONFIGS = {
     "lora": LoraConfig,
@@ -22,6 +25,8 @@ LABELS_MAP = {
     "trec-mortality": {"NOT_DIE": 0, "DIE": 1},
     "trec-pmv": {"LT1W": 0, "GT1W": 1},
     "trec-los": {"LT3D": 0, "3DTO7D": 1, "1WTO2W": 2, "GT2W": 3},
+    "core-diagnosis": DIAGNOSES_MAP,
+    "core-procedure": PROCEDURES_MAP,
 }
 
 # PMC-LLaMA does not use these special characters, we're reintroducing it

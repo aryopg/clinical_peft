@@ -68,18 +68,23 @@ def train(
 
         train_labels = train_dataloader.dataset["labels"]
         num_train_data = len(train_labels)
-        label_counts = Counter(train_labels)
-        class_weights = torch.Tensor(
-            [
-                num_train_data / (len(labels_map) * label_counts[i])
-                for i in range(len(labels_map))
-            ]
-        ).to(accelerator.device)
+        # No class weighting for multilabel classification
+        class_weights = None
+        if not configs.training_configs.multilabel:
+            label_counts = Counter(train_labels)
+            class_weights = torch.Tensor(
+                [
+                    num_train_data / (len(labels_map) * label_counts[i])
+                    for i in range(len(labels_map))
+                ]
+            ).to(accelerator.device)
 
-        if len(labels_map) > 2:
+        if not configs.training_configs.multilabel and len(labels_map) > 2:
             roc_auc_metrics = evaluate.load("roc_auc", "multiclass")
-        else:
+        elif not configs.training_configs.multilabel and len(labels_map) == 2:
             roc_auc_metrics = evaluate.load("roc_auc")
+        elif configs.training_configs.multilabel:
+            roc_auc_metrics = evaluate.load("roc_auc", "multilabel")
 
         performance_metrics = {
             "roc_auc": roc_auc_metrics,
@@ -146,6 +151,7 @@ def train(
         model.train()
         for train_step, batch in enumerate(tqdm(train_dataloader)):
             # Manually remove token type ids
+            # Labels are removed from the dict to allow custom computation
             with accelerator.accumulate(model):
                 labels = batch["labels"]
                 batch = {
