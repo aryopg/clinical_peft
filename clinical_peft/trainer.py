@@ -312,8 +312,7 @@ def test(
             prediction_scores = F.softmax(outputs.logits, dim=1)
             if multi_label:
                 probs = F.sigmoid(outputs.logits)
-                predictions = np.zeros(probs.shape)
-                predictions[np.where(probs >= 0.5)] = 1
+                predictions = torch.where(probs >= 0.5, 1.0, 0.0)
             else:
                 predictions = outputs.logits.argmax(dim=-1)
             if not multi_class:
