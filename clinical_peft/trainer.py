@@ -82,21 +82,23 @@ def train(
 
         multi_class = None
         if not configs.training_configs.multilabel:
-            f1_metrics = evaluate.load("f1")
+            f1_micro_metrics = evaluate.load("f1")
+            f1_macro_metrics = evaluate.load("f1")
             if len(labels_map) > 2:
                 roc_auc_metrics = evaluate.load("roc_auc", "multiclass")
                 multi_class = "ovo"
             elif len(labels_map) == 2:
                 roc_auc_metrics = evaluate.load("roc_auc")
         else:
-            f1_metrics = evaluate.load("f1", "multilabel")
+            f1_micro_metrics = evaluate.load("f1", "multilabel")
+            f1_macro_metrics = evaluate.load("f1", "multilabel")
             # roc_auc_metrics = evaluate.load("roc_auc", "multilabel")
             roc_auc_metrics = None
 
         performance_metrics = {
             "roc_auc": roc_auc_metrics,
-            "f1_micro": f1_metrics,
-            "f1_macro": f1_metrics,
+            "f1_micro": f1_micro_metrics,
+            "f1_macro": f1_macro_metrics,
         }
 
     if configs.model_configs.peft_type:
