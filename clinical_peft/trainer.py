@@ -22,13 +22,12 @@ from transformers import (
     DataCollatorForLanguageModeling,
     DataCollatorWithPadding,
     PreTrainedTokenizer,
-    TrainingArguments,
     get_linear_schedule_with_warmup,
 )
 
 from .configs import Configs, TaskType
 from .constants import LABELS_MAP, LLAMA_SPECIAL_CHARACTER_IDS, LLAMA_SPECIAL_CHARACTERS
-from .utils.common_utils import delete_files_in_directory, setup_random_seed
+from .utils.common_utils import setup_random_seed
 from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config
 
@@ -101,24 +100,34 @@ def train(
             "f1_macro": f1_macro_metrics,
         }
 
-    if configs.model_configs.peft_type:
-        peft_config: PeftConfig = load_peft_config(
-            configs.model_configs.peft_type,
-            configs.model_configs.task_type,
-            wandb_tracker.config,
+    if configs.model_configs.pretrained_peft_name_or_path:
+        # Load the Lora model
+        model = PeftModel.from_pretrained(
+            model, configs.model_configs.pretrained_peft_name_or_path
         )
-
-        accelerator.print(peft_config)
-
-        model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
+        for name, param in model.named_parameters():
+            if param.requires_grad == True:
+                print(name, param)
     else:
-        if "llama" in configs.model_configs.model_name_or_path.lower():
-            for name, param in model.named_parameters():
-                if name.startswith("classifier") or name.startswith("score"):
-                    param.requires_grad = True
-                else:
-                    param.requires_grad = False
+        if configs.model_configs.peft_type:
+            peft_config: PeftConfig = load_peft_config(
+                configs.model_configs.peft_type,
+                configs.model_configs.task_type,
+                wandb_tracker.config,
+            )
+
+            accelerator.print(peft_config)
+
+            model = get_peft_model(model, peft_config)
+            model.print_trainable_parameters()
+        else:
+            if "llama" in configs.model_configs.model_name_or_path.lower():
+                for name, param in model.named_parameters():
+                    if name.startswith("classifier") or name.startswith("score"):
+                        param.requires_grad = True
+                    else:
+                        param.requires_grad = False
 
     # optimizer
     optimizer = torch.optim.AdamW(
