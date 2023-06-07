@@ -50,9 +50,9 @@ def main() -> None:
         model_name = "bluebert"
     if configs.model_configs.pretrained_peft_name_or_path:
         model_name = "clinical_" + model_name
-        if configs.model_configs.pretrained_peft_name_or_path == True:
+        if configs.model_configs.pretrained_peft_fine_tune is True:
             model_name += "_finetune"
-        elif configs.model_configs.pretrained_peft_name_or_path == False:
+        elif configs.model_configs.pretrained_peft_fine_tune is False:
             model_name += "_frozen"
 
     if configs.model_configs.peft_hyperparameters:
