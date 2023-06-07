@@ -114,7 +114,7 @@ def train(
                 trainable_params += [name]
                 param.requires_grad = True
 
-        accelerate.print(f"Trainable params: {trainable_params}")
+        accelerator.print(f"Trainable params: {trainable_params}")
         model.print_trainable_parameters()
     else:
         if configs.model_configs.peft_type:
