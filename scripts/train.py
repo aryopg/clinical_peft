@@ -48,6 +48,8 @@ def main() -> None:
     # BlueBERT specific quirk, the name is too long to store on HF hub
     if model_name.startswith("bluebert"):
         model_name = "bluebert"
+    if configs.model_configs.pretrained_peft_name_or_path:
+        model_name = "clinical_" + model_name
 
     if configs.model_configs.peft_hyperparameters:
         # Start sweep
