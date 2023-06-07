@@ -105,6 +105,7 @@ def train(
         model = PeftModel.from_pretrained(
             model, configs.model_configs.pretrained_peft_name_or_path
         )
+        print(model)
         model.print_trainable_parameters()
         for name, param in model.named_parameters():
             if param.requires_grad == True:
