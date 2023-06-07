@@ -106,7 +106,10 @@ def train(
             model, configs.model_configs.pretrained_peft_name_or_path
         )
         for name, param in model.named_parameters():
-            print(name, param)
+            if name.startswith == "base_model.model.score":
+                param.requires_grad = True
+            if configs.model_configs.pretrained_peft_fine_tune and ".lora_" in name:
+                param.requires_grad = True
         model.print_trainable_parameters()
     else:
         if configs.model_configs.peft_type:
