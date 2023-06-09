@@ -345,7 +345,7 @@ def test(
                 predictions = torch.where(probs >= 0.5, 1.0, 0.0)
             else:
                 predictions = outputs.logits.argmax(dim=-1)
-            if not multi_class:
+            if not multi_class and not multi_label:
                 prediction_scores = prediction_scores[:, -1]
             references = batch["labels"]
             predictions, prediction_scores, references = accelerator.gather(
