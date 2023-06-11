@@ -34,16 +34,18 @@ from .utils.model_utils import load_peft_config
 
 def train(
     configs: Configs,
-    wandb_tracker: WandBTracker,
+    wandb_tracker: Optional[WandBTracker],
     accelerator: Accelerator,
     train_dataloader: DataLoader,
     val_dataloader: Optional[DataLoader] = None,
     test_dataloader: Optional[DataLoader] = None,
     sweep_name: str = None,
 ) -> None:
+    wandb_tracker_config = wandb_tracker.config if wandb_tracker is not None else None
+
     accelerator.print("Loading model:")
     accelerator.print(configs.model_configs.dict())
-    accelerator.print(wandb_tracker.config)
+    accelerator.print(wandb_tracker_config)
 
     num_epochs = configs.training_configs.epochs
     # Load Model
@@ -127,7 +129,7 @@ def train(
             peft_config: PeftConfig = load_peft_config(
                 configs.model_configs.peft_type,
                 configs.model_configs.task_type,
-                wandb_tracker.config,
+                wandb_tracker_config,
             )
 
             accelerator.print(peft_config)
@@ -293,7 +295,7 @@ def train(
     hf_username = os.getenv("HF_USERNAME")
     hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
     hyperparams = []
-    for key, value in wandb_tracker.config.items():
+    for key, value in wandb_tracker_config.items():
         hyperparams += [f"{key}_{value}"]
     hyperparams = "__".join(hyperparams)
 
@@ -487,7 +489,7 @@ def run(
 
     train(
         configs,
-        wandb_tracker.tracker,
+        wandb_tracker.tracker if wandb_tracker is not None else None,
         accelerator,
         train_dataloader,
         val_dataloader,
