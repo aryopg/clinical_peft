@@ -401,6 +401,7 @@ def run(
     setup_random_seed(configs.training_configs.random_seed)
 
     # Initialise tracker
+    wandb_tracker = None
     if accelerator.is_main_process:
         accelerator.init_trackers(
             project_name=wandb_project,
