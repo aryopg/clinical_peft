@@ -2,10 +2,17 @@ import argparse
 import json
 import math
 import os
+import sys
 import time
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple, Union
+
+sys.path.append(os.getcwd())
+
+from dotenv import load_dotenv
+
+load_dotenv("env/.env")
 
 import datasets
 import evaluate
