@@ -33,5 +33,5 @@ training_configs:
   log_steps: 1000000
   eval_steps: 1000000  # Only evaluate at the end
   checkpoint_steps: 1000000  # Only checkpoint at the end
-  max_sweep_count: 1
+  max_sweep_count: 10
   outputs_dir: "outputs"
