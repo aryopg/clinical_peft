@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import functools
 import os
 import sys
@@ -10,6 +11,7 @@ from dotenv import load_dotenv
 load_dotenv("env/.env")
 
 import huggingface_hub
+import torch.distributed as dist
 from accelerate import Accelerator
 
 import wandb
@@ -27,6 +29,12 @@ def argument_parser():
 
 
 def main() -> None:
+    dist.init_process_group(
+        backend="nccl",
+        init_method="env://",
+        timeout=datetime.timedelta(seconds=100000000),
+    )
+
     args = argument_parser()
     configs = Configs(**common_utils.load_yaml(args.config_filepath))
 
