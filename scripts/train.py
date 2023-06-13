@@ -29,11 +29,14 @@ def argument_parser():
 
 
 def main() -> None:
-    dist.init_process_group(
-        backend="nccl",
-        init_method="env://",
-        timeout=datetime.timedelta(seconds=100000000),
-    )
+    try:
+        dist.init_process_group(
+            backend="nccl",
+            init_method="env://",
+            timeout=datetime.timedelta(seconds=100000000),
+        )
+    except ValueError:
+        pass
 
     args = argument_parser()
     configs = Configs(**common_utils.load_yaml(args.config_filepath))
