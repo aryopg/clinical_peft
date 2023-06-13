@@ -17,7 +17,7 @@ training_configs:
   test_size: 0.1
   epochs: 1
   steps: 1000000
-  batch_size: 2
+  batch_size: 16
   log_steps: 100
   eval_steps: 1000000  # Only evaluate at the end
   checkpoint_steps: 1000000  # Only checkpoint at the end
