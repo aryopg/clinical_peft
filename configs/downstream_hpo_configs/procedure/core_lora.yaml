@@ -1,5 +1,5 @@
 model_configs:
-  peft_type: null
+  peft_type: "lora"
   task_type: "seq_cls"
   model_name_or_path: "bvanaken/CORe-clinical-outcome-biobert-v1"
   peft_hyperparameters: 
