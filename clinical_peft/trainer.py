@@ -9,6 +9,7 @@ import numpy as np
 import torch
 from accelerate import Accelerator
 from accelerate.tracking import WandBTracker
+from accelerate.utils import find_executable_batch_size
 from datasets import load_dataset
 from evaluate import EvaluationModule
 from peft import PeftConfig, PeftModel, get_peft_model
@@ -392,7 +393,9 @@ def test(
     return eval_metrics
 
 
+@find_executable_batch_size()
 def run(
+    max_batch_size: int,
     accelerator: Accelerator,
     configs: Configs,
     wandb_entity: str,
@@ -466,7 +469,7 @@ def run(
         dataset["train"],
         shuffle=True,
         collate_fn=data_collator,
-        batch_size=configs.training_configs.batch_size,
+        batch_size=max_batch_size,
         pin_memory=True,
     )
     val_dataloader, test_dataloader = None, None
@@ -475,7 +478,7 @@ def run(
             dataset["validation"],
             shuffle=True,
             collate_fn=data_collator,
-            batch_size=configs.training_configs.batch_size,
+            batch_size=max_batch_size,
             pin_memory=True,
         )
     if configs.training_configs.test_size > 0 or "test" in dataset:
@@ -483,7 +486,7 @@ def run(
             dataset["test"],
             shuffle=True,
             collate_fn=data_collator,
-            batch_size=configs.training_configs.batch_size,
+            batch_size=max_batch_size,
             pin_memory=True,
         )
 
