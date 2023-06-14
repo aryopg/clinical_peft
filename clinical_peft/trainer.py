@@ -1,3 +1,4 @@
+import datetime
 import os
 import time
 from collections import Counter
@@ -5,7 +6,6 @@ from typing import Dict, List, Optional
 
 import evaluate
 import huggingface_hub
-import numpy as np
 import torch
 from accelerate import Accelerator
 from accelerate.tracking import WandBTracker
@@ -92,9 +92,7 @@ def train(
             elif len(labels_map) == 2:
                 roc_auc_metrics = evaluate.load("roc_auc")
         else:
-            f1_micro_metrics = evaluate.load(
-                "clinical_peft/metrics/f1_skip_uniform", "multilabel"
-            )
+            f1_micro_metrics = evaluate.load("f1")
             f1_macro_metrics = evaluate.load(
                 "clinical_peft/metrics/f1_skip_uniform", "multilabel"
             )
@@ -179,6 +177,9 @@ def train(
         optimizer,
         lr_scheduler,
     )
+
+    if accelerator.is_main_process:
+        accelerator.print(f"Starting training at: {datetime.datetime.now()}")
 
     for epoch in range(num_epochs):
         accelerator.print(f" >>> Epoch {epoch + 1} / {num_epochs}")
