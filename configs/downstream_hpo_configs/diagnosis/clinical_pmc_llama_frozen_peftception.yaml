@@ -3,8 +3,8 @@ model_configs:
   task_type: "seq_cls"
   model_name_or_path: "chaoyi-wu/PMC_LLAMA_7B"
   pretrained_peft_name_or_path: "aryopg/mimic-iv__PMC_LLAMA_7B__lora__lora_alpha_4__lora_dropout_0.2__r_4"
-  pretrained_peft_fine_tune: true
-  peftception: false
+  pretrained_peft_fine_tune: false
+  peftception: true
   peft_hyperparameters: null
   model_hyperparameters:
     learning_rate: 0.00005
@@ -13,7 +13,7 @@ model_configs:
     gradient_accumulation_steps: 10
 training_configs:
   dataset_paths:
-    - aryopg/trec-mortality
+    - aryopg/core-diagnosis
   random_seed: 1234
   device: 0
   num_process: 8

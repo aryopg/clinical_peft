@@ -27,7 +27,12 @@ from transformers import (
 )
 
 from .configs import Configs, TaskType
-from .constants import LABELS_MAP, LLAMA_SPECIAL_CHARACTER_IDS, LLAMA_SPECIAL_CHARACTERS
+from .constants import (
+    LABELS_MAP,
+    LLAMA_SPECIAL_CHARACTER_IDS,
+    LLAMA_SPECIAL_CHARACTERS,
+    PEFT_CONFIGS,
+)
 from .utils.common_utils import setup_random_seed
 from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config
@@ -110,18 +115,26 @@ def train(
     if configs.model_configs.pretrained_peft_name_or_path:
         # Load the Lora model
         model = PeftModel.from_pretrained(
-            model, configs.model_configs.pretrained_peft_name_or_path
+            model,
+            configs.model_configs.pretrained_peft_name_or_path,
+            is_trainable=configs.model_configs.pretrained_peft_fine_tune,
         )
-        trainable_params = []
         for name, param in model.named_parameters():
-            if ".score" in name:
-                trainable_params += [name]
-                param.requires_grad = True
-            if configs.model_configs.pretrained_peft_fine_tune and ".lora_" in name:
-                trainable_params += [name]
+            if ".score" in name or ".classifier" in name:
                 param.requires_grad = True
 
-        accelerator.print(f"Trainable params: {trainable_params}")
+        if configs.model_configs.peftception:
+            pretrained_peft_type = model.peft_config["default"].peft_type
+            downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type](
+                task_type=model.peft_config["default"].task_type,
+                inference_mode=False,
+                r=model.peft_config["default"].r,
+                lora_alpha=model.peft_config["default"].lora_alpha,
+                lora_dropout=model.peft_config["default"].lora_dropout,
+            )
+
+            model.add_adapter("lora_downstream", downstream_peft_config)
+
         model.print_trainable_parameters()
     else:
         if configs.model_configs.peft_type:
