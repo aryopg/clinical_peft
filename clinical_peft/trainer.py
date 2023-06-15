@@ -125,7 +125,7 @@ def train(
 
         if configs.model_configs.peftception:
             pretrained_peft_type = model.peft_config["default"].peft_type
-            downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type](
+            downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type.lower()](
                 task_type=model.peft_config["default"].task_type,
                 inference_mode=False,
                 r=model.peft_config["default"].r,
