@@ -65,6 +65,8 @@ def main() -> None:
             model_name += "_finetune"
         elif configs.model_configs.pretrained_peft_fine_tune is False:
             model_name += "_frozen"
+        if configs.model_configs.peftception is True:
+            model_name += "_peftception"
 
     if configs.model_configs.peft_hyperparameters:
         # Start sweep
