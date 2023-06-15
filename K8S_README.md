@@ -34,5 +34,5 @@ conda create -n clinical_peft python=3.10
 conda activate clinical_peft
 conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia -y
 conda install transformers datasets huggingface_hub -c huggingface -y
-conda install sentencepiece pydantic python-dotenv black isort tqdm wandb pandas matplotlib accelerate -c conda-forge -y
+conda install sentencepiece pydantic python-dotenv black isort tqdm wandb pandas matplotlib accelerate scikit-learn -c conda-forge -y
 ```

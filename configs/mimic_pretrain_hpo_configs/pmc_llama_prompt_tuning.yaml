@@ -18,6 +18,7 @@ model_configs:
         values: ["chaoyi-wu/PMC_LLAMA_7B"]
   model_hyperparameters:
     learning_rate: 0.0003
+    warmup_steps_ratio: 0.06
     max_seq_len: 128
     gradient_accumulation_steps: 4
 training_configs:
@@ -27,6 +28,7 @@ training_configs:
   device: 0
   num_process: 8
   test_size: 0.1
+  epochs: 1
   steps: 1000000
   batch_size: 10
   log_steps: 100

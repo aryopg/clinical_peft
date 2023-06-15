@@ -1,12 +1,13 @@
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
 
-class PEFTTaskType(str, Enum):
+class TaskType(str, Enum):
     causal_lm = "causal_lm"
     seq2seq_lm = "seq2seq_lm"
+    seq_cls = "seq_cls"
 
 
 class PEFTType(str, Enum):
@@ -21,14 +22,18 @@ class PEFTType(str, Enum):
 class ModelHyperparameters(BaseModel):
     learning_rate: float
     max_seq_len: int
+    warmup_steps_ratio: float
     gradient_accumulation_steps: int
 
 
 class ModelConfigs(BaseModel):
-    peft_type: PEFTType
-    task_type: PEFTTaskType
+    peft_type: Optional[PEFTType]
+    task_type: TaskType
     model_name_or_path: str = "data/llama/7B"
-    peft_hyperparameters: dict
+    pretrained_peft_name_or_path: Optional[str] = None
+    pretrained_peft_fine_tune: Optional[bool] = None
+    peftception: Optional[bool] = False
+    peft_hyperparameters: Optional[dict]
     model_hyperparameters: ModelHyperparameters
 
     class Config:
@@ -37,10 +42,12 @@ class ModelConfigs(BaseModel):
 
 class TrainingConfigs(BaseModel):
     dataset_paths: List[str]
+    multilabel: bool = False
     random_seed: int = 1234
     device: int = 0
     num_process: int = 8
     test_size: float = 0.1
+    epochs: int = 1
     steps: int = 1000000
     batch_size: int = 256
     log_steps: int = 100
