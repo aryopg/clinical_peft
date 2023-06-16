@@ -121,6 +121,7 @@ def train(
         )
         for name, param in model.named_parameters():
             if ".score" in name or ".classifier" in name:
+                print(name)
                 param.requires_grad = True
 
         if configs.model_configs.peftception:
@@ -134,6 +135,10 @@ def train(
             )
 
             model.add_adapter("lora_downstream", downstream_peft_config)
+
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                print(name)
 
         model.print_trainable_parameters()
     else:
