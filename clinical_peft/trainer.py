@@ -97,7 +97,7 @@ def train(
             elif len(labels_map) == 2:
                 roc_auc_metrics = evaluate.load("roc_auc")
         else:
-            f1_micro_metrics = evaluate.load("f1")
+            f1_micro_metrics = evaluate.load("f1", "multilabel")
             f1_macro_metrics = evaluate.load(
                 "clinical_peft/metrics/f1_skip_uniform", "multilabel"
             )
