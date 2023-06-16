@@ -119,10 +119,6 @@ def train(
             configs.model_configs.pretrained_peft_name_or_path,
             is_trainable=configs.model_configs.pretrained_peft_fine_tune,
         )
-        for name, param in model.named_parameters():
-            if ".score" in name or ".classifier" in name:
-                print(name)
-                param.requires_grad = True
 
         if configs.model_configs.peftception:
             pretrained_peft_type = model.peft_config["default"].peft_type
@@ -135,6 +131,11 @@ def train(
             )
 
             model.add_adapter("lora_downstream", downstream_peft_config)
+
+        for name, param in model.named_parameters():
+            if ".score" in name or ".classifier" in name:
+                print(name)
+                param.requires_grad = True
 
         for name, param in model.named_parameters():
             if param.requires_grad:
