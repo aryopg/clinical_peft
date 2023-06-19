@@ -200,6 +200,9 @@ def train(
     if accelerator.is_main_process:
         accelerator.print(f"Starting training at: {datetime.datetime.now()}")
 
+    if torch.cuda.device_count() > 1:
+        accelerator.sync_gradients = False
+
     for epoch in range(num_epochs):
         accelerator.print(f" >>> Epoch {epoch + 1} / {num_epochs}")
         model.train()
