@@ -1,22 +1,31 @@
 name: clinical_peft
 channels:
   - defaults
+  - nvidia
+  - huggingface
+  - conda-forge
 dependencies:
-  - sentencepiece
-  - black
-  - isort
-  - transformers
-  - pydantic
-  - python-dotenv
   - python=3.10
-  - tqdm
-  - wandb
-  - pandas
-  - matplotlib
-  - datasets
-  - torchaudio
+  - pip
   - torchvision
+  - torchaudio
   - pytorch
   - pytorch-cuda=11.8
+  - datasets
+  - transformers
+  - evaluate
   - huggingface_hub
-prefix: /home/aryo/miniconda3/envs/clinical_peft
+  - isort
+  - sentencepiece
+  - pandas
+  - python-dotenv
+  - pydantic
+  - wandb
+  - black
+  - matplotlib
+  - scikit-learn
+  - tqdm
+  - accelerate
+  - pip:
+    - tokenizers
+    - -e ./submodules/peft
