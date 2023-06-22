@@ -11,9 +11,10 @@ This repository contains the code for domain adaptation fine-tuning, downstream 
 - [🛠️ Setup](#️-setup)
   - [Cloning the codebase](#cloning-the-codebase)
   - [Python packages](#python-packages)
-  - [Dataset](#dataset)
-    - [Domain adaptation fine-tuning](#domain-adaptation-fine-tuning)
-    - [Downstream fine-tuning](#downstream-fine-tuning)
+  - [Environment variables](#environment-variables)
+- [💾 Dataset](#-dataset)
+  - [Domain adaptation fine-tuning](#domain-adaptation-fine-tuning)
+  - [Downstream fine-tuning](#downstream-fine-tuning)
 - [🤖 Training](#-training)
   - [Prepare the MIMIC-IV dataset](#prepare-the-mimic-iv-dataset)
   - [Prepare the downstream datasets](#prepare-the-downstream-datasets)
@@ -87,13 +88,35 @@ conda install transformers datasets huggingface_hub evaluate -c huggingface -y
 conda install sentencepiece pydantic python-dotenv black isort tqdm wandb pandas matplotlib accelerate scikit-learn -c conda-forge -y
 ```
 
-### Dataset
+### Environment variables
 
-#### Domain adaptation fine-tuning
+There are multiple environment variables required to run the training:
+
+- **WANDB_API_KEY**: The authorisation key to access your WandB projects
+- **WANDB_PROJECT_NAME**: The name that you like for this project
+- **WANDB_ENTITY**: The WandB entity that will host the project
+- **HF_DOWNLOAD_TOKEN**: Download token for Huggingface
+- **HF_UPLOAD_TOKEN**: Upload token for Huggingface
+- **HF_USERNAME**: Your HuggingFace username
+
+We use the `python-dotenv` package to load these environment variables. To set them:
+
+```
+mkdir env
+nano env/.env
+```
+
+Write down all of the mentioned environment variables with the appropriate values inside that file.
+Certainly, you don't have to use `nano`, as long as the file name (`env/.env`) remain the same.
+
+## 💾 Dataset
+
+
+### Domain adaptation fine-tuning
 
 A combination of [**MIMIC-IV**](https://physionet.org/content/mimic-iv-note/2.2/) de-identified **discharge summaries (331,794)** and **radiology reports (2,321,355)**, resulting in a collection of **2,653,149 individual clinical notes**.
 
-#### Downstream fine-tuning
+### Downstream fine-tuning
 
 <img src="docs/assets/downstream_dataset_stats.png">
 
