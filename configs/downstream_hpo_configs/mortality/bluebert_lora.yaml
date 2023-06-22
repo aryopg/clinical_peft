@@ -21,7 +21,7 @@ model_configs:
     gradient_accumulation_steps: 2
 training_configs:
   dataset_paths:
-    - aryopg/trec-mortality
+    - PATH_TO_TREC_MORTALITY_DATASET
   random_seed: 1234
   device: 0
   num_process: 8

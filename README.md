@@ -48,7 +48,7 @@ As we rely on a specific version of [PEFT](https://github.com/huggingface/peft),
 Consequently, you have to clone this repo with a `--recurse-submodules` flag:
 
 ```
-git clone --recurse-submodules https://github.com/aryopg/clinical_peft.git
+git clone --recurse-submodules https://github.com/DOUBLE_BLIND_ANONYMOUS/clinical_peft.git
 ```
 
 ### Python packages
@@ -57,6 +57,7 @@ This codebase requires multiple dependencies.
 <summary>Dependencies</summary>
 
 ```
+- pip
 - numpy
 - pandas
 - pytorch
@@ -81,11 +82,8 @@ This codebase requires multiple dependencies.
 We opted in to using conda as our package manager. The following will install the necessary dependencies for a GPU training:
 ```
 ENV_NAME=clinical_peft
-conda create -n ${ENV_NAME} python=3.10 -y
+conda env create -f environment.yml
 conda activate ${ENV_NAME}
-conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia -y
-conda install transformers datasets huggingface_hub evaluate -c huggingface -y
-conda install sentencepiece pydantic python-dotenv black isort tqdm wandb pandas matplotlib accelerate scikit-learn -c conda-forge -y
 ```
 
 ### Environment variables

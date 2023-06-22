@@ -1,7 +1,7 @@
 model_configs:
   peft_type: "prompt_tuning"
   task_type: "causal_lm"
-  model_name_or_path: "aryopg/llama-7b"
+  model_name_or_path: "PATH_TO_LLAMA"
   peft_hyperparameters:
     method: bayes
     metric:
@@ -15,7 +15,7 @@ model_configs:
       prompt_tuning_init_text:
         values: ["Finish this clinical note: "]
       tokenizer_name_or_path:
-        values: ["aryopg/llama-7b"]
+        values: ["PATH_TO_LLAMA"]
   model_hyperparameters:
     learning_rate: 0.0003
     warmup_steps_ratio: 0.06
@@ -23,7 +23,7 @@ model_configs:
     gradient_accumulation_steps: 4
 training_configs:
   dataset_paths:
-    - aryopg/mimic-iv
+    - PATH_TO_PROCESSED_MIMIC_IV_DATASET
   random_seed: 1234
   device: 0
   num_process: 8

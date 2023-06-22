@@ -19,7 +19,7 @@ model_configs:
     gradient_accumulation_steps: 4
 training_configs:
   dataset_paths:
-    - aryopg/mimic-iv
+    - PATH_TO_PROCESSED_MIMIC_IV_DATASET
   random_seed: 1234
   device: 0
   num_process: 8

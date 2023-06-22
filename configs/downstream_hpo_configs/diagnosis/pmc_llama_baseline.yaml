@@ -10,7 +10,7 @@ model_configs:
     gradient_accumulation_steps: 10
 training_configs:
   dataset_paths:
-    - aryopg/core-diagnosis
+    - PATH_TO_CORE_DIAGNOSIS_DATASET
   multilabel: true
   random_seed: 1234
   device: 0

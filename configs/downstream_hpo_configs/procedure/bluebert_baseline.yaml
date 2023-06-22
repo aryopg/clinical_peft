@@ -10,7 +10,7 @@ model_configs:
     gradient_accumulation_steps: 2
 training_configs:
   dataset_paths:
-    - aryopg/core-procedure
+    - PATH_TO_CORE_PROCEDURE_DATASET
   multilabel: true
   random_seed: 1234
   device: 0

@@ -1,7 +1,7 @@
 model_configs:
   peft_type: "lora"
   task_type: "seq_cls"
-  model_name_or_path: "aryopg/llama-7b"
+  model_name_or_path: "PATH_TO_LLAMA"
   peft_hyperparameters:
     method: bayes
     metric:
@@ -21,7 +21,7 @@ model_configs:
     gradient_accumulation_steps: 2
 training_configs:
   dataset_paths:
-    - aryopg/core-procedure
+    - PATH_TO_CORE_PROCEDURE_DATASET
   multilabel: true
   random_seed: 1234
   device: 0
