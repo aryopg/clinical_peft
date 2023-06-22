@@ -32,7 +32,7 @@ class ModelConfigs(BaseModel):
     model_name_or_path: str = "data/llama/7B"
     pretrained_peft_name_or_path: Optional[str] = None
     pretrained_peft_fine_tune: Optional[bool] = None
-    peftception: Optional[bool] = False
+    downstream_peft: Optional[bool] = False
     peft_hyperparameters: Optional[dict]
     model_hyperparameters: ModelHyperparameters
 

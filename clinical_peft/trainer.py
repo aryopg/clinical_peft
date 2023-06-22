@@ -120,7 +120,7 @@ def train(
             is_trainable=configs.model_configs.pretrained_peft_fine_tune,
         )
 
-        if configs.model_configs.peftception:
+        if configs.model_configs.downstream_peft:
             pretrained_peft_type = model.peft_config["default"].peft_type
             downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type.lower()](
                 task_type=model.peft_config["default"].task_type,
