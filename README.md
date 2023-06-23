@@ -3,7 +3,7 @@
 
 This repository contains the code for domain adaptation fine-tuning, downstream fine-tuning, and evaluation for "Parameter-Efficient Fine-Tuning LLaMA for the Clinical Domain" (in submission)
 
-<img src="docs/assets/peft.png">
+<img src="docs/assets/clinical_llama_lora.png">
 
 <!-- omit in toc -->
 ## Table of Contents
@@ -40,6 +40,8 @@ Additionally, we propose a two-step PEFT framework which fuses Clinical LLaMA-Lo
 We evaluate this framework on multiple clinical outcome prediction benchmark datasets, comparing it to clinically trained language models.
 Our proposed framework achieves the state-of-the-art AUROC score averaged across all clinical downstream tasks.
 We observe pronounced improvements of 6-9\% AUROC score in the extreme multilabel classification tasks, such as diagnoses and procedures classification.
+
+<img src="docs/assets/peft.png">
 
 ## 🛠️ Setup
 ### Cloning the codebase
