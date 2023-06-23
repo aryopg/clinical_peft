@@ -3,7 +3,7 @@
 
 This repository contains the code for domain adaptation fine-tuning, downstream fine-tuning, and evaluation for "Parameter-Efficient Fine-Tuning LLaMA for the Clinical Domain" (in submission)
 
-<img src="docs/assets/clinical_llama_lora.png">
+<img src="docs/assets/clinical_llama_lora.png" width=50%>
 
 <!-- omit in toc -->
 ## Table of Contents
