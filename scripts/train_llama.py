@@ -93,7 +93,7 @@ def main() -> None:
         gradient_accumulation_steps=10,
         evaluation_strategy="epoch",
         save_strategy="epoch",
-        fp16=True,
+        # fp16=True,
         # fsdp="full_shard",
         # fsdp_config={
         #     "fsdp_transformer_layer_cls_to_wrap": "LlamaDecoderLayer",
