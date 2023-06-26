@@ -12,6 +12,7 @@ load_dotenv("env/.env")
 
 import huggingface_hub
 from datasets import load_dataset
+from pynvml import *
 from torch.utils.data import DataLoader
 from transformers import (
     AutoTokenizer,
@@ -32,6 +33,13 @@ def argument_parser():
     parser.add_argument("--existing_sweep_id", type=str, default="")
     args = parser.parse_args()
     return args
+
+
+def print_gpu_utilization():
+    nvmlInit()
+    handle = nvmlDeviceGetHandleByIndex(0)
+    info = nvmlDeviceGetMemoryInfo(handle)
+    print(f"GPU memory occupied: {info.used//1024**2} MB.")
 
 
 def main() -> None:
@@ -68,10 +76,14 @@ def main() -> None:
     #     pin_memory=True,
     # )
 
+    print_gpu_utilization()
+
     print("Setup Model")
     model = LlamaForCausalLM.from_pretrained(
         model_path,
     )
+
+    print_gpu_utilization()
     training_args = TrainingArguments(
         output_dir="output/",
         do_train=True,
@@ -96,7 +108,9 @@ def main() -> None:
         tokenizer=tokenizer,
         args=training_args,
     )
+    print_gpu_utilization()
     trainer.train()
+    print_gpu_utilization()
     trainer.save_state()
 
 
