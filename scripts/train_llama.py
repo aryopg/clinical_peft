@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 load_dotenv("env/.env")
 
 import huggingface_hub
+import torch
 from datasets import load_dataset
 from pynvml import *
 from torch.utils.data import DataLoader
@@ -81,6 +82,7 @@ def main() -> None:
     print("Setup Model")
     model = LlamaForCausalLM.from_pretrained(
         model_path,
+        torch_dtype=torch.float16,
     )
 
     print_gpu_utilization()
