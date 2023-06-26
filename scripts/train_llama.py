@@ -90,14 +90,14 @@ def main() -> None:
         auto_find_batch_size=True,
         gradient_accumulation_steps=10,
         evaluation_strategy="epoch",
-        fsdp="full_shard",
         save_strategy="epoch",
         fp16=True,
-        fsdp_config={
-            "fsdp_transformer_layer_cls_to_wrap": "LlamaDecoderLayer",
-            "fsdp_backward_prefetch": "backward_pre",
-            "fsdp_forward_prefetch": True,
-        },
+        # fsdp="full_shard",
+        # fsdp_config={
+        #     "fsdp_transformer_layer_cls_to_wrap": "LlamaDecoderLayer",
+        #     "fsdp_backward_prefetch": "backward_pre",
+        #     "fsdp_forward_prefetch": True,
+        # },
     )
 
     trainer = Trainer(
