@@ -2,6 +2,7 @@ name: clinical_peft
 channels:
   - defaults
   - nvidia
+  - pytorch
   - huggingface
   - conda-forge
 dependencies:
