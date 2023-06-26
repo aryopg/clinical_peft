@@ -89,7 +89,9 @@ def main() -> None:
     training_args = TrainingArguments(
         output_dir="output/",
         do_train=True,
-        auto_find_batch_size=True,
+        # auto_find_batch_size=True,
+        per_device_train_batch_size=16,
+        per_device_train_batch_size=16,
         gradient_accumulation_steps=10,
         evaluation_strategy="epoch",
         save_strategy="epoch",
