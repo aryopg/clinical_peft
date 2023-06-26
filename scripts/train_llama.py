@@ -62,21 +62,6 @@ def main() -> None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
-    # train_dataloader = DataLoader(
-    #     dataset["train"],
-    #     shuffle=True,
-    #     collate_fn=data_collator,
-    #     batch_size=max_batch_size,
-    #     pin_memory=True,
-    # )
-    # test_dataloader = DataLoader(
-    #     dataset["test"],
-    #     shuffle=True,
-    #     collate_fn=data_collator,
-    #     batch_size=max_batch_size,
-    #     pin_memory=True,
-    # )
-
     print_gpu_utilization()
 
     print("Setup Model")
