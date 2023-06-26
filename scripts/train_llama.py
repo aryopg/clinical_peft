@@ -75,6 +75,7 @@ def main() -> None:
     training_args = TrainingArguments(
         output_dir="output/",
         do_train=True,
+        auto_find_batch_size=True,
         gradient_accumulation_steps=10,
         evaluation_strategy="epoch",
         fsdp="full_shard",
