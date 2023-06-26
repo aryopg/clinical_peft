@@ -457,6 +457,7 @@ def run(
 
     with accelerator.main_process_first():
         dataset = preprocess_dataset(dataset, configs, tokenizer)
+        accelerator.print(max_batch_size)
     accelerator.wait_for_everyone()
 
     # TODO: PMC-LLaMA doesn't specify these special characters
