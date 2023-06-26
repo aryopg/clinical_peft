@@ -83,6 +83,7 @@ def main() -> None:
         fp16=True,
         fsdp_config={
             "fsdp_transformer_layer_cls_to_wrap": "LlamaDecoderLayer",
+            "fsdp_backward_prefetch": "backward_pre",
         },
     )
 
