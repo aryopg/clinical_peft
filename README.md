@@ -3,7 +3,7 @@
 
 This repository contains the code for domain adaptation fine-tuning, downstream fine-tuning, and evaluation for "Parameter-Efficient Fine-Tuning LLaMA for the Clinical Domain" (in submission)
 
-<img src="docs/assets/peft.png">
+<img src="docs/assets/clinical_llama_lora.png" width=75%>
 
 <!-- omit in toc -->
 ## Table of Contents
@@ -41,6 +41,8 @@ We evaluate this framework on multiple clinical outcome prediction benchmark dat
 Our proposed framework achieves the state-of-the-art AUROC score averaged across all clinical downstream tasks.
 We observe pronounced improvements of 6-9\% AUROC score in the extreme multilabel classification tasks, such as diagnoses and procedures classification.
 
+<img src="docs/assets/peft.png">
+
 ## 🛠️ Setup
 ### Cloning the codebase
 
@@ -57,6 +59,7 @@ This codebase requires multiple dependencies.
 <summary>Dependencies</summary>
 
 ```
+- pip
 - numpy
 - pandas
 - pytorch
@@ -80,12 +83,8 @@ This codebase requires multiple dependencies.
 
 We opted in to using conda as our package manager. The following will install the necessary dependencies for a GPU training:
 ```
-ENV_NAME=clinical_peft
-conda create -n ${ENV_NAME} python=3.10 -y
-conda activate ${ENV_NAME}
-conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia -y
-conda install transformers datasets huggingface_hub evaluate -c huggingface -y
-conda install sentencepiece pydantic python-dotenv black isort tqdm wandb pandas matplotlib accelerate scikit-learn -c conda-forge -y
+conda env create -f environment.yml
+conda activate clinical_peft
 ```
 
 ### Environment variables
