@@ -413,7 +413,7 @@ def test(
     return eval_metrics
 
 
-@find_executable_batch_size(starting_batch_size=8)
+@find_executable_batch_size(starting_batch_size=128)
 def run(
     max_batch_size: int,
     accelerator: Accelerator,
