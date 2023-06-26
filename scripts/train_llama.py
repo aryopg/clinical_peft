@@ -51,7 +51,7 @@ def main() -> None:
 
     args = argument_parser()
     configs = Configs(**common_utils.load_yaml(args.config_filepath))
-    dataset = load_dataset("aryopg/mini-mimic-iv", data_files="*.gz")
+    dataset = load_dataset("aryopg/mimic-iv", data_files="*.gz")
 
     tokenizer = AutoTokenizer.from_pretrained(model_path, padding_side="right")
 
@@ -82,7 +82,7 @@ def main() -> None:
     print("Setup Model")
     model = LlamaForCausalLM.from_pretrained(
         model_path,
-        torch_dtype=torch.float16,
+        torch_dtype=torch.bfloat16,
     )
 
     print_gpu_utilization()
@@ -95,6 +95,7 @@ def main() -> None:
         gradient_accumulation_steps=10,
         evaluation_strategy="epoch",
         save_strategy="epoch",
+        num_train_epochs=5,
         # fp16=True,
         # fsdp="full_shard",
         # fsdp_config={
