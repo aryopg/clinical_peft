@@ -1,5 +1,6 @@
 import argparse
 
+import huggingface_hub
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 from transformers import (
@@ -26,6 +27,8 @@ def argument_parser():
 def main() -> None:
     max_batch_size = 32
     model_path = "aryopg/llama-7b"
+
+    huggingface_hub.login(token=os.getenv("HF_DOWNLOAD_TOKEN", ""))
 
     args = argument_parser()
     configs = Configs(**common_utils.load_yaml(args.config_filepath))
