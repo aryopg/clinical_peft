@@ -1,4 +1,14 @@
 import argparse
+import datetime
+import functools
+import os
+import sys
+
+sys.path.append(os.getcwd())
+
+from dotenv import load_dotenv
+
+load_dotenv("env/.env")
 
 import huggingface_hub
 from datasets import load_dataset
