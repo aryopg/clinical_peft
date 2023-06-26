@@ -51,7 +51,7 @@ def main() -> None:
 
     args = argument_parser()
     configs = Configs(**common_utils.load_yaml(args.config_filepath))
-    dataset = load_dataset("aryopg/mimic-iv", data_files="*.gz")
+    dataset = load_dataset("aryopg/mini-mimic-iv", data_files="*.gz")
 
     tokenizer = AutoTokenizer.from_pretrained(model_path, padding_side="right")
 
