@@ -53,20 +53,20 @@ def main() -> None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
-    train_dataloader = DataLoader(
-        dataset["train"],
-        shuffle=True,
-        collate_fn=data_collator,
-        batch_size=max_batch_size,
-        pin_memory=True,
-    )
-    test_dataloader = DataLoader(
-        dataset["test"],
-        shuffle=True,
-        collate_fn=data_collator,
-        batch_size=max_batch_size,
-        pin_memory=True,
-    )
+    # train_dataloader = DataLoader(
+    #     dataset["train"],
+    #     shuffle=True,
+    #     collate_fn=data_collator,
+    #     batch_size=max_batch_size,
+    #     pin_memory=True,
+    # )
+    # test_dataloader = DataLoader(
+    #     dataset["test"],
+    #     shuffle=True,
+    #     collate_fn=data_collator,
+    #     batch_size=max_batch_size,
+    #     pin_memory=True,
+    # )
 
     print("Setup Model")
     model = LlamaForCausalLM.from_pretrained(
@@ -87,8 +87,10 @@ def main() -> None:
 
     trainer = Trainer(
         model=model,
-        train_dataset=train_dataloader,
-        eval_dataset=test_dataloader,
+        train_dataset=dataset["train"],
+        eval_dataset=dataset["test"],
+        data_collator=data_collator,
+        tokenizer=tokenizer,
         args=training_args,
     )
     trainer.train()
