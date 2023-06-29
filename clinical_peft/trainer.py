@@ -427,7 +427,7 @@ def test(
     return eval_metrics
 
 
-@find_executable_batch_size(starting_batch_size=128)
+@find_executable_batch_size(starting_batch_size=16)
 def run(
     max_batch_size: int,
     accelerator: Accelerator,
@@ -469,12 +469,10 @@ def run(
         configs.model_configs.model_name_or_path, padding_side=padding_side
     )
 
-    print(dataset)
     with accelerator.main_process_first():
         dataset = preprocess_dataset(dataset, configs, tokenizer)
         accelerator.print(max_batch_size)
     accelerator.wait_for_everyone()
-    print(dataset)
 
     # TODO: PMC-LLaMA doesn't specify these special characters
     if "PMC_LLAMA" in configs.model_configs.model_name_or_path:
