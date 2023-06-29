@@ -170,7 +170,7 @@ def train(
 
     # optimizer
     optimizer = torch.optim.AdamW(
-        params=model.parameters(),
+        params=[param for param in model.parameters() if param.requires_grad],
         lr=configs.model_configs.model_hyperparameters.learning_rate,
     )
 
