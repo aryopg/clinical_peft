@@ -1,7 +1,6 @@
 import datetime
 import os
 import time
-from collections import Counter
 from typing import Dict, List, Optional
 
 import evaluate
@@ -18,10 +17,13 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import (
     AutoModelForCausalLM,
+    AutoModelForQuestionAnswering,
     AutoModelForSequenceClassification,
+    AutoModelForTokenClassification,
     AutoTokenizer,
     DataCollatorForLanguageModeling,
     DataCollatorWithPadding,
+    DefaultDataCollator,
     PreTrainedTokenizer,
     get_linear_schedule_with_warmup,
 )
@@ -33,9 +35,10 @@ from .constants import (
     LLAMA_SPECIAL_CHARACTERS,
     PEFT_CONFIGS,
 )
+from .models.llama import LlamaForQuestionAnswering, LlamaForTokenClassification
 from .utils.common_utils import setup_random_seed
 from .utils.dataset_utils import preprocess_dataset
-from .utils.model_utils import load_peft_config
+from .utils.model_utils import load_peft_config, set_class_weights, set_metrics
 
 
 def train(
@@ -55,13 +58,14 @@ def train(
 
     num_epochs = configs.training_configs.epochs
     # Load Model
+    labels_map = None
+    use_bf16 = configs.model_configs.model_hyperparameters.bf16
     if configs.model_configs.task_type == TaskType.causal_lm:
         model = AutoModelForCausalLM.from_pretrained(
-            configs.model_configs.model_name_or_path, return_dict=True
+            configs.model_configs.model_name_or_path,
+            torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+            return_dict=True,
         )
-        class_weights = None
-        performance_metrics = None
-        multi_class = None
     elif configs.model_configs.task_type == TaskType.seq_cls:
         labels_map = LABELS_MAP[
             configs.training_configs.dataset_paths[0].split("/")[-1]
@@ -72,45 +76,49 @@ def train(
             num_labels=len(labels_map),
             label2id=labels_map,
             id2label={v: k for k, v in labels_map.items()},
+            torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
         )
+    elif configs.model_configs.task_type == TaskType.question_ans:
+        if "llama" in configs.model_configs.model_name_or_path:
+            model = LlamaForQuestionAnswering.from_pretrained(
+                configs.model_configs.model_name_or_path,
+                return_dict=True,
+                torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+            )
+        else:
+            model = AutoModelForQuestionAnswering.from_pretrained(
+                configs.model_configs.model_name_or_path,
+                return_dict=True,
+                torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+            )
+    elif configs.model_configs.task_type == TaskType.token_cls:
+        if "llama" in configs.model_configs.model_name_or_path:
+            model = LlamaForTokenClassification.from_pretrained(
+                configs.model_configs.model_name_or_path,
+                return_dict=True,
+                torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+            )
+        else:
+            model = AutoModelForTokenClassification.from_pretrained(
+                configs.model_configs.model_name_or_path,
+                return_dict=True,
+                torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+            )
 
-        train_labels = train_dataloader.dataset["labels"]
-        num_train_data = len(train_labels)
-        # No class weighting for multilabel classification
-        class_weights = None
+    class_weights = None
+    performance_metrics = None
+    multi_class = None
+    if labels_map:
+        # Setup class weighting
         if not configs.training_configs.multilabel:
-            label_counts = Counter(train_labels)
-            class_weights = torch.Tensor(
-                [
-                    num_train_data / (len(labels_map) * label_counts[i])
-                    for i in range(len(labels_map))
-                ]
+            class_weights = set_class_weights(
+                train_dataloader.dataset["labels"], labels_map
             ).to(accelerator.device)
 
-        multi_class = None
-        if not configs.training_configs.multilabel:
-            f1_micro_metrics = evaluate.load("f1")
-            f1_macro_metrics = evaluate.load("f1")
-            if len(labels_map) > 2:
-                roc_auc_metrics = evaluate.load("roc_auc", "multiclass")
-                multi_class = "ovo"
-            elif len(labels_map) == 2:
-                roc_auc_metrics = evaluate.load("roc_auc")
-        else:
-            f1_micro_metrics = evaluate.load("f1", "multilabel")
-            f1_macro_metrics = evaluate.load(
-                "clinical_peft/metrics/f1_skip_uniform", "multilabel"
-            )
-            # roc_auc_metrics = evaluate.load("roc_auc", "multilabel")
-            roc_auc_metrics = evaluate.load(
-                "clinical_peft/metrics/roc_auc_skip_uniform", "multilabel"
-            )
-
-        performance_metrics = {
-            "roc_auc": roc_auc_metrics,
-            "f1_micro": f1_micro_metrics,
-            "f1_macro": f1_macro_metrics,
-        }
+        # Setup performance metrics
+        performance_metrics, multi_class = set_metrics(
+            labels_map, configs.training_configs.multilabel
+        )
 
     if configs.model_configs.pretrained_peft_name_or_path:
         # Load the Lora model
@@ -168,10 +176,10 @@ def train(
 
     # lr scheduler
     warmup_steps_ratio = configs.model_configs.model_hyperparameters.warmup_steps_ratio
-    if configs.model_configs.task_type == TaskType.causal_lm:
-        num_training_steps = min(len(train_dataloader), configs.training_configs.steps)
-    elif configs.model_configs.task_type == TaskType.seq_cls:
-        num_training_steps = len(train_dataloader) * num_epochs
+    # if configs.model_configs.task_type == TaskType.causal_lm:
+    #     num_training_steps = min(len(train_dataloader), configs.training_configs.steps)
+    # elif configs.model_configs.task_type == TaskType.seq_cls:
+    num_training_steps = len(train_dataloader) * num_epochs
     lr_scheduler = get_linear_schedule_with_warmup(
         optimizer=optimizer,
         num_warmup_steps=warmup_steps_ratio,
@@ -207,18 +215,24 @@ def train(
             # Manually remove token type ids
             # Labels are removed from the dict to allow custom computation
             with accelerator.accumulate(model):
-                labels = batch["labels"]
-                batch = {
-                    k: v
-                    for k, v in batch.items()
-                    if k not in ["token_type_ids", "labels"]
-                }
+                if "labels" in batch:
+                    labels = batch["labels"]
+                    batch = {
+                        k: v
+                        for k, v in batch.items()
+                        if k not in ["token_type_ids", "labels"]
+                    }
 
-                if class_weights is not None:
-                    outputs = model(**batch)
-                    loss = F.cross_entropy(outputs.logits, labels, weight=class_weights)
+                    if class_weights is not None:
+                        outputs = model(**batch)
+                        loss = F.cross_entropy(
+                            outputs.logits, labels, weight=class_weights
+                        )
+                    else:
+                        outputs = model(**batch, labels=labels)
+                        loss = outputs.loss
                 else:
-                    outputs = model(**batch, labels=labels)
+                    outputs = model(**batch)
                     loss = outputs.loss
                 accelerator.backward(loss)
                 optimizer.step()
@@ -455,10 +469,12 @@ def run(
         configs.model_configs.model_name_or_path, padding_side=padding_side
     )
 
+    print(dataset)
     with accelerator.main_process_first():
         dataset = preprocess_dataset(dataset, configs, tokenizer)
         accelerator.print(max_batch_size)
     accelerator.wait_for_everyone()
+    print(dataset)
 
     # TODO: PMC-LLaMA doesn't specify these special characters
     if "PMC_LLAMA" in configs.model_configs.model_name_or_path:
@@ -477,12 +493,16 @@ def run(
     if getattr(tokenizer, "pad_token_id") is None:
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id
-    if configs.model_configs.task_type == TaskType.causal_lm:
+    if configs.model_configs.task_type in [TaskType.causal_lm]:
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
     elif configs.model_configs.task_type == TaskType.seq_cls:
         data_collator = DataCollatorWithPadding(
             tokenizer=tokenizer,
             padding="longest",
+            return_tensors="pt",
+        )
+    elif configs.model_configs.task_type == TaskType.question_ans:
+        data_collator = DefaultDataCollator(
             return_tensors="pt",
         )
 

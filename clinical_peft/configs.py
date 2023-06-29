@@ -8,6 +8,8 @@ class TaskType(str, Enum):
     causal_lm = "causal_lm"
     seq2seq_lm = "seq2seq_lm"
     seq_cls = "seq_cls"
+    question_ans = "question_ans"
+    token_cls = "token_cls"
 
 
 class PEFTType(str, Enum):
@@ -20,6 +22,7 @@ class PEFTType(str, Enum):
 
 
 class ModelHyperparameters(BaseModel):
+    bf16: bool = False
     learning_rate: float
     max_seq_len: int
     warmup_steps_ratio: float

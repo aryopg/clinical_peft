@@ -1,6 +1,10 @@
+from collections import Counter
+
+import evaluate
+import torch
 from peft import PeftConfig
 
-from ..configs import TaskType
+from ..configs import Configs, TaskType
 from ..constants import PEFT_CONFIGS, TASK_TYPE
 
 
@@ -15,3 +19,45 @@ def load_peft_config(
         inference_mode=inference_mode,
         **peft_hyperparameters,
     )
+
+
+def set_class_weights(train_labels: list, labels_map: dict):
+    num_train_data = len(train_labels)
+
+    label_counts = Counter(train_labels)
+    class_weights = torch.Tensor(
+        [
+            num_train_data / (len(labels_map) * label_counts[i])
+            for i in range(len(labels_map))
+        ]
+    )
+
+    return class_weights
+
+
+def set_metrics(labels_map: dict, multilabel: bool):
+    multi_class = None
+    if not multilabel:
+        f1_micro_metrics = evaluate.load("f1")
+        f1_macro_metrics = evaluate.load("f1")
+        if len(labels_map) > 2:
+            roc_auc_metrics = evaluate.load("roc_auc", "multiclass")
+            multi_class = "ovo"
+        elif len(labels_map) == 2:
+            roc_auc_metrics = evaluate.load("roc_auc")
+    else:
+        f1_micro_metrics = evaluate.load("f1", "multilabel")
+        f1_macro_metrics = evaluate.load(
+            "clinical_peft/metrics/f1_skip_uniform", "multilabel"
+        )
+        roc_auc_metrics = evaluate.load(
+            "clinical_peft/metrics/roc_auc_skip_uniform", "multilabel"
+        )
+
+    performance_metrics = {
+        "roc_auc": roc_auc_metrics,
+        "f1_micro": f1_micro_metrics,
+        "f1_macro": f1_macro_metrics,
+    }
+
+    return performance_metrics, multi_class
