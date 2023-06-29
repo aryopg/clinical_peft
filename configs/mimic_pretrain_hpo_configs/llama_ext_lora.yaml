@@ -18,7 +18,7 @@ model_configs:
     bf16: True
     learning_rate: 0.0003
     warmup_steps_ratio: 0.06
-    max_seq_len: 256
+    max_seq_len: 512
     gradient_accumulation_steps: 10
 training_configs:
   dataset_paths:
