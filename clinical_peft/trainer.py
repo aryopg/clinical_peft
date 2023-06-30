@@ -512,11 +512,6 @@ def run(
         configs.model_configs.model_name_or_path, padding_side=padding_side
     )
 
-    with accelerator.main_process_first():
-        dataset = preprocess_dataset(dataset, configs, tokenizer)
-        accelerator.print(max_batch_size)
-    accelerator.wait_for_everyone()
-
     # TODO: PMC-LLaMA doesn't specify these special characters
     if "PMC_LLAMA" in configs.model_configs.model_name_or_path:
         for special_char in ["unk", "bos", "pad", "eos"]:
@@ -538,10 +533,10 @@ def run(
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    accelerator.print(getattr(tokenizer, "pad_token_id"))
-    accelerator.print(getattr(tokenizer, "pad_token"))
-    accelerator.print(f"tokenizer.pad_token: {tokenizer.pad_token}")
-    accelerator.print(f"tokenizer.pad_token_id: {tokenizer.pad_token_id}")
+    with accelerator.main_process_first():
+        dataset = preprocess_dataset(dataset, configs, tokenizer)
+        accelerator.print(max_batch_size)
+    accelerator.wait_for_everyone()
 
     if configs.model_configs.task_type in [TaskType.causal_lm]:
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
