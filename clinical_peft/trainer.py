@@ -538,6 +538,8 @@ def run(
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
+    accelerator.print(getattr(tokenizer, "pad_token_id"))
+    accelerator.print(getattr(tokenizer, "pad_token"))
     accelerator.print(f"tokenizer.pad_token: {tokenizer.pad_token}")
     accelerator.print(f"tokenizer.pad_token_id: {tokenizer.pad_token_id}")
 
