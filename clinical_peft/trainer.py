@@ -22,6 +22,7 @@ from transformers import (
     AutoModelForTokenClassification,
     AutoTokenizer,
     DataCollatorForLanguageModeling,
+    DataCollatorForTokenClassification,
     DataCollatorWithPadding,
     DefaultDataCollator,
     PreTrainedTokenizer,
@@ -30,6 +31,7 @@ from transformers import (
 
 from .configs import Configs, TaskType
 from .constants import (
+    IOB_NER_MAP,
     LABELS_MAP,
     LLAMA_SPECIAL_CHARACTER_IDS,
     LLAMA_SPECIAL_CHARACTERS,
@@ -92,15 +94,24 @@ def train(
                 torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
             )
     elif configs.model_configs.task_type == TaskType.token_cls:
+        labels_map = IOB_NER_MAP[
+            configs.training_configs.dataset_paths[0].split("/")[-1]
+        ]
         if "llama" in configs.model_configs.model_name_or_path:
             model = LlamaForTokenClassification.from_pretrained(
                 configs.model_configs.model_name_or_path,
+                num_labels=len(labels_map),
+                label2id=labels_map,
+                id2label={v: k for k, v in labels_map.items()},
                 return_dict=True,
                 torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
             )
         else:
             model = AutoModelForTokenClassification.from_pretrained(
                 configs.model_configs.model_name_or_path,
+                num_labels=len(labels_map),
+                label2id=labels_map,
+                id2label={v: k for k, v in labels_map.items()},
                 return_dict=True,
                 torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
             )
@@ -108,7 +119,7 @@ def train(
     class_weights = None
     performance_metrics = None
     multi_class = None
-    if labels_map:
+    if configs.model_configs.task_type == TaskType.seq_cls and labels_map:
         # Setup class weighting
         if not configs.training_configs.multilabel:
             class_weights = set_class_weights(
@@ -119,6 +130,8 @@ def train(
         performance_metrics, multi_class = set_metrics(
             labels_map, configs.training_configs.multilabel
         )
+    elif configs.model_configs.task_type == TaskType.token_cls and labels_map:
+        performance_metrics = {"seqeval": evaluate.load("seqeval")}
 
     if configs.model_configs.pretrained_peft_name_or_path:
         # Load the Lora model
@@ -220,7 +233,7 @@ def train(
                     batch = {
                         k: v
                         for k, v in batch.items()
-                        if k not in ["token_type_ids", "labels"]
+                        if k not in ["token_type_ids", "offset_mapping", "labels"]
                     }
 
                     if class_weights is not None:
@@ -257,8 +270,8 @@ def train(
 
                 if (train_step + 1) >= num_training_steps:
                     break
-        # For classification task, log metrics at the end of an epoch
-        if configs.model_configs.task_type == "seq_cls":
+        # For classification tasks, log metrics at the end of an epoch
+        if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
             accelerator.log(
                 {"train_loss": train_loss},
                 step=epoch,
@@ -271,8 +284,9 @@ def train(
                 configs.model_configs.task_type,
                 performance_metrics,
                 multi_label=configs.training_configs.multilabel,
-                multi_class="ovo" if len(labels_map) > 2 else None,
+                multi_class=multi_class,
                 split="train",
+                label_list=list(labels_map.keys()),
             )
 
             val_metrics = test(
@@ -282,9 +296,11 @@ def train(
                 configs.model_configs.task_type,
                 performance_metrics,
                 multi_label=configs.training_configs.multilabel,
-                multi_class="ovo" if len(labels_map) > 2 else None,
+                multi_class=multi_class,
                 split="val",
+                label_list=list(labels_map.keys()),
             )
+            print(train_metrics)
             train_metrics_log = " - ".join(
                 [
                     f"{metric_name}: {metric_value}"
@@ -315,6 +331,7 @@ def train(
         multi_label=configs.training_configs.multilabel,
         multi_class=multi_class,
         split="test",
+        label_list=list(labels_map.keys()),
     )
     metrics_log = " - ".join(
         [
@@ -363,12 +380,17 @@ def test(
     metrics: Optional[Dict[str, EvaluationModule]] = None,
     multi_label: Optional[bool] = False,
     multi_class: Optional[str] = None,
-    split="val",
+    split: str = "val",
+    label_list: list = [],
 ) -> dict:
     model.eval()
     total_loss = 0
     for eval_step, batch in enumerate(tqdm(dataloader)):
-        batch = {k: v for k, v in batch.items() if k not in ["token_type_ids"]}
+        batch = {
+            k: v
+            for k, v in batch.items()
+            if k not in ["token_type_ids", "offset_mapping"]
+        }
         with torch.no_grad():
             outputs = model(**batch)
 
@@ -398,6 +420,21 @@ def test(
                     )
                 elif metric_name.startswith("f1_"):
                     metric.add_batch(predictions=predictions, references=references)
+        elif task == TaskType.token_cls:
+            predictions = outputs.logits.argmax(dim=-1)
+            predictions, references = accelerator.gather((predictions, batch["labels"]))
+            true_predictions = [
+                [label_list[p] for (p, l) in zip(prediction, label) if l != -100]
+                for prediction, label in zip(predictions, references)
+            ]
+            true_labels = [
+                [label_list[l] for (p, l) in zip(prediction, label) if l != -100]
+                for prediction, label in zip(predictions, references)
+            ]
+
+            metrics["seqeval"].add_batch(
+                predictions=true_predictions, references=true_labels
+            )
 
     eval_loss = total_loss / len(dataloader)
 
@@ -407,7 +444,7 @@ def test(
     if task == TaskType.causal_lm:
         eval_ppl = torch.exp(eval_loss)
         eval_metrics[f"{split}_ppl"] = eval_ppl
-    elif task == TaskType.seq_cls:
+    elif task in [TaskType.seq_cls, TaskType.token_cls]:
         for metric_name, metric in metrics.items():
             if metric is None:
                 continue
@@ -423,6 +460,12 @@ def test(
                 eval_metrics[f"{split}_{metric_name}"] = metric.compute(
                     average="macro"
                 )["f1"]
+            elif metric_name == "seqeval":
+                ner_metrics = metric.compute(scheme="IOB2")
+                eval_metrics[f"{split}_precision"] = ner_metrics["overall_precision"]
+                eval_metrics[f"{split}_recall"] = ner_metrics["overall_recall"]
+                eval_metrics[f"{split}_f1"] = ner_metrics["overall_f1"]
+                eval_metrics[f"{split}_accuracy"] = ner_metrics["overall_accuracy"]
 
     return eval_metrics
 
@@ -498,6 +541,10 @@ def run(
             tokenizer=tokenizer,
             padding="longest",
             return_tensors="pt",
+        )
+    elif configs.model_configs.task_type == TaskType.token_cls:
+        data_collator = DataCollatorForTokenClassification(
+            tokenizer=tokenizer, padding="longest", return_tensors="pt"
         )
     elif configs.model_configs.task_type == TaskType.question_ans:
         data_collator = DefaultDataCollator(
