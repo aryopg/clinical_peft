@@ -531,9 +531,13 @@ def run(
                 LLAMA_SPECIAL_CHARACTER_IDS[special_char],
             )
 
-    if getattr(tokenizer, "pad_token_id") is None:
+    if (
+        getattr(tokenizer, "pad_token_id") is None
+        or getattr(tokenizer, "pad_token") is None
+    ):
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id
+
     if configs.model_configs.task_type in [TaskType.causal_lm]:
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
     elif configs.model_configs.task_type == TaskType.seq_cls:
