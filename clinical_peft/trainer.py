@@ -244,7 +244,7 @@ def train(
                     else:
                         outputs = model(**batch, labels=labels)
                         print("batch['input_ids'].size(): ", batch["input_ids"].size())
-                        print("outputs.size(): ", outputs.size())
+                        print("outputs.logits.size(): ", outputs.logits.size())
                         print("labels.size(): ", labels.size())
                         loss = outputs.loss
                 else:
