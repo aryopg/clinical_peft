@@ -94,9 +94,7 @@ def setup_data_loader(
     return train_dataloader, val_dataloader, test_dataloader
 
 
-@find_executable_batch_size(starting_batch_size=16)
 def train(
-    max_batch_size: int,
     configs: Configs,
     wandb_tracker: Optional[WandBTracker],
     accelerator: Accelerator,
@@ -110,327 +108,337 @@ def train(
     accelerator.print(configs.model_configs.dict())
     accelerator.print(wandb_tracker_config)
 
-    # Setup data loader
-    accelerator.print(max_batch_size)
-    train_dataloader, val_dataloader, test_dataloader = setup_data_loader(
-        configs, tokenizer, dataset, max_batch_size
-    )
-
-    num_epochs = configs.training_configs.epochs
-    # Load Model
-    labels_map = None
-    use_bf16 = configs.model_configs.model_hyperparameters.bf16
-    if configs.model_configs.task_type == TaskType.causal_lm:
-        model = AutoModelForCausalLM.from_pretrained(
-            configs.model_configs.model_name_or_path,
-            torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
-            return_dict=True,
+    @find_executable_batch_size(starting_batch_size=configs.training_configs.batch_size)
+    def inner_training_loop(max_batch_size):
+        # Setup data loader
+        accelerator.print(max_batch_size)
+        train_dataloader, val_dataloader, test_dataloader = setup_data_loader(
+            configs, tokenizer, dataset, max_batch_size
         )
-    elif configs.model_configs.task_type == TaskType.seq_cls:
-        labels_map = LABELS_MAP[
-            configs.training_configs.dataset_paths[0].split("/")[-1]
-        ]
 
-        model = AutoModelForSequenceClassification.from_pretrained(
-            configs.model_configs.model_name_or_path,
-            num_labels=len(labels_map),
-            label2id=labels_map,
-            id2label={v: k for k, v in labels_map.items()},
-            torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
-        )
-    elif configs.model_configs.task_type == TaskType.question_ans:
-        if "llama" in configs.model_configs.model_name_or_path:
-            model = LlamaForQuestionAnswering.from_pretrained(
+        num_epochs = configs.training_configs.epochs
+        # Load Model
+        labels_map = None
+        use_bf16 = configs.model_configs.model_hyperparameters.bf16
+        if configs.model_configs.task_type == TaskType.causal_lm:
+            model = AutoModelForCausalLM.from_pretrained(
                 configs.model_configs.model_name_or_path,
-                return_dict=True,
                 torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
-            )
-        else:
-            model = AutoModelForQuestionAnswering.from_pretrained(
-                configs.model_configs.model_name_or_path,
                 return_dict=True,
-                torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
             )
-    elif configs.model_configs.task_type == TaskType.token_cls:
-        labels_map = IOB_NER_MAP[
-            configs.training_configs.dataset_paths[0].split("/")[-1]
-        ]
-        if "llama" in configs.model_configs.model_name_or_path:
-            model = LlamaForTokenClassification.from_pretrained(
+        elif configs.model_configs.task_type == TaskType.seq_cls:
+            labels_map = LABELS_MAP[
+                configs.training_configs.dataset_paths[0].split("/")[-1]
+            ]
+
+            model = AutoModelForSequenceClassification.from_pretrained(
                 configs.model_configs.model_name_or_path,
                 num_labels=len(labels_map),
                 label2id=labels_map,
                 id2label={v: k for k, v in labels_map.items()},
-                return_dict=True,
                 torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
             )
-        else:
-            model = AutoModelForTokenClassification.from_pretrained(
-                configs.model_configs.model_name_or_path,
-                num_labels=len(labels_map),
-                label2id=labels_map,
-                id2label={v: k for k, v in labels_map.items()},
-                return_dict=True,
-                torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+        elif configs.model_configs.task_type == TaskType.question_ans:
+            if "llama" in configs.model_configs.model_name_or_path:
+                model = LlamaForQuestionAnswering.from_pretrained(
+                    configs.model_configs.model_name_or_path,
+                    return_dict=True,
+                    torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+                )
+            else:
+                model = AutoModelForQuestionAnswering.from_pretrained(
+                    configs.model_configs.model_name_or_path,
+                    return_dict=True,
+                    torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+                )
+        elif configs.model_configs.task_type == TaskType.token_cls:
+            labels_map = IOB_NER_MAP[
+                configs.training_configs.dataset_paths[0].split("/")[-1]
+            ]
+            if "llama" in configs.model_configs.model_name_or_path:
+                model = LlamaForTokenClassification.from_pretrained(
+                    configs.model_configs.model_name_or_path,
+                    num_labels=len(labels_map),
+                    label2id=labels_map,
+                    id2label={v: k for k, v in labels_map.items()},
+                    return_dict=True,
+                    torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+                )
+            else:
+                model = AutoModelForTokenClassification.from_pretrained(
+                    configs.model_configs.model_name_or_path,
+                    num_labels=len(labels_map),
+                    label2id=labels_map,
+                    id2label={v: k for k, v in labels_map.items()},
+                    return_dict=True,
+                    torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+                )
+
+        class_weights = None
+        performance_metrics = None
+        multi_class = None
+        if configs.model_configs.task_type == TaskType.seq_cls and labels_map:
+            # Setup class weighting
+            if not configs.training_configs.multilabel:
+                class_weights = set_class_weights(
+                    train_dataloader.dataset["labels"], labels_map
+                ).to(accelerator.device)
+
+            # Setup performance metrics
+            performance_metrics, multi_class = set_metrics(
+                labels_map, configs.training_configs.multilabel
+            )
+        elif configs.model_configs.task_type == TaskType.token_cls and labels_map:
+            performance_metrics = {"seqeval": evaluate.load("seqeval")}
+
+        if configs.model_configs.pretrained_peft_name_or_path:
+            # Load the Lora model
+            model = PeftModel.from_pretrained(
+                model,
+                configs.model_configs.pretrained_peft_name_or_path,
+                is_trainable=configs.model_configs.pretrained_peft_fine_tune,
             )
 
-    class_weights = None
-    performance_metrics = None
-    multi_class = None
-    if configs.model_configs.task_type == TaskType.seq_cls and labels_map:
-        # Setup class weighting
-        if not configs.training_configs.multilabel:
-            class_weights = set_class_weights(
-                train_dataloader.dataset["labels"], labels_map
-            ).to(accelerator.device)
+            if configs.model_configs.downstream_peft:
+                pretrained_peft_type = model.peft_config["default"].peft_type
+                downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type.lower()](
+                    task_type=model.peft_config["default"].task_type,
+                    inference_mode=False,
+                    **wandb_tracker_config,
+                )
 
-        # Setup performance metrics
-        performance_metrics, multi_class = set_metrics(
-            labels_map, configs.training_configs.multilabel
-        )
-    elif configs.model_configs.task_type == TaskType.token_cls and labels_map:
-        performance_metrics = {"seqeval": evaluate.load("seqeval")}
+                model.add_adapter("lora_downstream", downstream_peft_config)
 
-    if configs.model_configs.pretrained_peft_name_or_path:
-        # Load the Lora model
-        model = PeftModel.from_pretrained(
-            model,
-            configs.model_configs.pretrained_peft_name_or_path,
-            is_trainable=configs.model_configs.pretrained_peft_fine_tune,
-        )
+            for name, param in model.named_parameters():
+                if ".score" in name or ".classifier" in name:
+                    param.requires_grad = True
 
-        if configs.model_configs.downstream_peft:
-            pretrained_peft_type = model.peft_config["default"].peft_type
-            downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type.lower()](
-                task_type=model.peft_config["default"].task_type,
-                inference_mode=False,
-                **wandb_tracker_config,
-            )
+            for name, param in model.named_parameters():
+                if param.requires_grad:
+                    print(name)
 
-            model.add_adapter("lora_downstream", downstream_peft_config)
-
-        for name, param in model.named_parameters():
-            if ".score" in name or ".classifier" in name:
-                param.requires_grad = True
-
-        for name, param in model.named_parameters():
-            if param.requires_grad:
-                print(name)
-
-        model.print_trainable_parameters()
-    else:
-        if configs.model_configs.peft_type:
-            peft_config: PeftConfig = load_peft_config(
-                configs.model_configs.peft_type,
-                configs.model_configs.task_type,
-                wandb_tracker_config,
-            )
-
-            accelerator.print(peft_config)
-
-            model = get_peft_model(model, peft_config)
             model.print_trainable_parameters()
         else:
-            if configs.model_configs.task_type == TaskType.seq_cls:
-                if "llama" in configs.model_configs.model_name_or_path.lower():
-                    for name, param in model.named_parameters():
-                        if name.startswith("classifier") or name.startswith("score"):
-                            param.requires_grad = True
+            if configs.model_configs.peft_type:
+                peft_config: PeftConfig = load_peft_config(
+                    configs.model_configs.peft_type,
+                    configs.model_configs.task_type,
+                    wandb_tracker_config,
+                )
+
+                accelerator.print(peft_config)
+
+                model = get_peft_model(model, peft_config)
+                model.print_trainable_parameters()
+            else:
+                if configs.model_configs.task_type == TaskType.seq_cls:
+                    if "llama" in configs.model_configs.model_name_or_path.lower():
+                        for name, param in model.named_parameters():
+                            if name.startswith("classifier") or name.startswith(
+                                "score"
+                            ):
+                                param.requires_grad = True
+                            else:
+                                param.requires_grad = False
+
+        # optimizer
+        optimizer = torch.optim.AdamW(
+            params=[param for param in model.parameters() if param.requires_grad],
+            lr=configs.model_configs.model_hyperparameters.learning_rate,
+        )
+
+        # lr scheduler
+        warmup_steps_ratio = (
+            configs.model_configs.model_hyperparameters.warmup_steps_ratio
+        )
+        # if configs.model_configs.task_type == TaskType.causal_lm:
+        #     num_training_steps = min(len(train_dataloader), configs.training_configs.steps)
+        # elif configs.model_configs.task_type == TaskType.seq_cls:
+        num_training_steps = len(train_dataloader) * num_epochs
+        lr_scheduler = get_linear_schedule_with_warmup(
+            optimizer=optimizer,
+            num_warmup_steps=warmup_steps_ratio,
+            num_training_steps=num_training_steps,
+        )
+
+        (
+            model,
+            train_dataloader,
+            val_dataloader,
+            test_dataloader,
+            optimizer,
+            lr_scheduler,
+        ) = accelerator.prepare(
+            model,
+            train_dataloader,
+            val_dataloader,
+            test_dataloader,
+            optimizer,
+            lr_scheduler,
+        )
+
+        if accelerator.is_main_process:
+            accelerator.print(f"Starting training at: {datetime.datetime.now()}")
+
+        if torch.cuda.device_count() > 1:
+            accelerator.sync_gradients = False
+
+        for epoch in range(num_epochs):
+            accelerator.print(f" >>> Epoch {epoch + 1} / {num_epochs}")
+            model.train()
+            for train_step, batch in enumerate(tqdm(train_dataloader)):
+                # Manually remove token type ids
+                # Labels are removed from the dict to allow custom computation
+                with accelerator.accumulate(model):
+                    if "labels" in batch:
+                        labels = batch["labels"]
+                        batch = {
+                            k: v
+                            for k, v in batch.items()
+                            if k not in ["token_type_ids", "offset_mapping", "labels"]
+                        }
+
+                        if class_weights is not None:
+                            outputs = model(**batch)
+                            loss = F.cross_entropy(
+                                outputs.logits, labels, weight=class_weights
+                            )
                         else:
-                            param.requires_grad = False
-
-    # optimizer
-    optimizer = torch.optim.AdamW(
-        params=[param for param in model.parameters() if param.requires_grad],
-        lr=configs.model_configs.model_hyperparameters.learning_rate,
-    )
-
-    # lr scheduler
-    warmup_steps_ratio = configs.model_configs.model_hyperparameters.warmup_steps_ratio
-    # if configs.model_configs.task_type == TaskType.causal_lm:
-    #     num_training_steps = min(len(train_dataloader), configs.training_configs.steps)
-    # elif configs.model_configs.task_type == TaskType.seq_cls:
-    num_training_steps = len(train_dataloader) * num_epochs
-    lr_scheduler = get_linear_schedule_with_warmup(
-        optimizer=optimizer,
-        num_warmup_steps=warmup_steps_ratio,
-        num_training_steps=num_training_steps,
-    )
-
-    (
-        model,
-        train_dataloader,
-        val_dataloader,
-        test_dataloader,
-        optimizer,
-        lr_scheduler,
-    ) = accelerator.prepare(
-        model,
-        train_dataloader,
-        val_dataloader,
-        test_dataloader,
-        optimizer,
-        lr_scheduler,
-    )
-
-    if accelerator.is_main_process:
-        accelerator.print(f"Starting training at: {datetime.datetime.now()}")
-
-    if torch.cuda.device_count() > 1:
-        accelerator.sync_gradients = False
-
-    for epoch in range(num_epochs):
-        accelerator.print(f" >>> Epoch {epoch + 1} / {num_epochs}")
-        model.train()
-        for train_step, batch in enumerate(tqdm(train_dataloader)):
-            # Manually remove token type ids
-            # Labels are removed from the dict to allow custom computation
-            with accelerator.accumulate(model):
-                if "labels" in batch:
-                    labels = batch["labels"]
-                    batch = {
-                        k: v
-                        for k, v in batch.items()
-                        if k not in ["token_type_ids", "offset_mapping", "labels"]
-                    }
-
-                    if class_weights is not None:
-                        outputs = model(**batch)
-                        loss = F.cross_entropy(
-                            outputs.logits, labels, weight=class_weights
-                        )
+                            outputs = model(**batch, labels=labels)
+                            print(
+                                "batch['input_ids'].size(): ", batch["input_ids"].size()
+                            )
+                            print("outputs.logits.size(): ", outputs.logits.size())
+                            print("labels.size(): ", labels.size())
+                            loss = outputs.loss
                     else:
-                        outputs = model(**batch, labels=labels)
-                        print("batch['input_ids'].size(): ", batch["input_ids"].size())
-                        print("outputs.logits.size(): ", outputs.logits.size())
-                        print("labels.size(): ", labels.size())
+                        outputs = model(**batch)
                         loss = outputs.loss
-                else:
-                    outputs = model(**batch)
-                    loss = outputs.loss
-                accelerator.backward(loss)
-                optimizer.step()
-                lr_scheduler.step()
-                optimizer.zero_grad()
+                    accelerator.backward(loss)
+                    optimizer.step()
+                    lr_scheduler.step()
+                    optimizer.zero_grad()
 
-            train_loss = loss.detach().float()
+                train_loss = loss.detach().float()
 
-            if (
-                (train_step + 1) >= num_training_steps
-                or train_step % configs.training_configs.log_steps == 0
-            ):
-                metrics = {"train_loss": train_loss}
-                if configs.model_configs.task_type == "causal_lm":
-                    train_ppl = torch.exp(train_loss)
-                    metrics["train_ppl"] = train_ppl
+                if (
+                    (train_step + 1) >= num_training_steps
+                    or train_step % configs.training_configs.log_steps == 0
+                ):
+                    metrics = {"train_loss": train_loss}
+                    if configs.model_configs.task_type == "causal_lm":
+                        train_ppl = torch.exp(train_loss)
+                        metrics["train_ppl"] = train_ppl
 
-                    accelerator.log(
-                        metrics,
-                        step=train_step,
-                    )
+                        accelerator.log(
+                            metrics,
+                            step=train_step,
+                        )
 
-                if (train_step + 1) >= num_training_steps:
-                    break
-        # For classification tasks, log metrics at the end of an epoch
-        if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
-            accelerator.log(
-                {"train_loss": train_loss},
-                step=epoch,
-            )
+                    if (train_step + 1) >= num_training_steps:
+                        break
+            # For classification tasks, log metrics at the end of an epoch
+            if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
+                accelerator.log(
+                    {"train_loss": train_loss},
+                    step=epoch,
+                )
 
-            train_metrics = test(
-                accelerator,
-                model,
-                train_dataloader,
-                configs.model_configs.task_type,
-                performance_metrics,
-                multi_label=configs.training_configs.multilabel,
-                multi_class=multi_class,
-                split="train",
-                label_list=list(labels_map.keys()),
-            )
+                train_metrics = test(
+                    accelerator,
+                    model,
+                    train_dataloader,
+                    configs.model_configs.task_type,
+                    performance_metrics,
+                    multi_label=configs.training_configs.multilabel,
+                    multi_class=multi_class,
+                    split="train",
+                    label_list=list(labels_map.keys()),
+                )
 
-            val_metrics = test(
-                accelerator,
-                model,
-                val_dataloader,
-                configs.model_configs.task_type,
-                performance_metrics,
-                multi_label=configs.training_configs.multilabel,
-                multi_class=multi_class,
-                split="val",
-                label_list=list(labels_map.keys()),
-            )
-            print(train_metrics)
-            train_metrics_log = " - ".join(
-                [
-                    f"{metric_name}: {metric_value}"
-                    for metric_name, metric_value in train_metrics.items()
-                ]
-            )
-            val_metrics_log = " - ".join(
-                [
-                    f"{metric_name}: {metric_value}"
-                    for metric_name, metric_value in val_metrics.items()
-                ]
-            )
-            combined_metrics = train_metrics | val_metrics
-            metrics_log = train_metrics_log + " - " + val_metrics_log
-            accelerator.print(f"Epoch: {epoch+1}/{num_epochs}: {metrics_log}")
-            accelerator.log(
-                combined_metrics,
-                step=epoch,
-            )
+                val_metrics = test(
+                    accelerator,
+                    model,
+                    val_dataloader,
+                    configs.model_configs.task_type,
+                    performance_metrics,
+                    multi_label=configs.training_configs.multilabel,
+                    multi_class=multi_class,
+                    split="val",
+                    label_list=list(labels_map.keys()),
+                )
+                print(train_metrics)
+                train_metrics_log = " - ".join(
+                    [
+                        f"{metric_name}: {metric_value}"
+                        for metric_name, metric_value in train_metrics.items()
+                    ]
+                )
+                val_metrics_log = " - ".join(
+                    [
+                        f"{metric_name}: {metric_value}"
+                        for metric_name, metric_value in val_metrics.items()
+                    ]
+                )
+                combined_metrics = train_metrics | val_metrics
+                metrics_log = train_metrics_log + " - " + val_metrics_log
+                accelerator.print(f"Epoch: {epoch+1}/{num_epochs}: {metrics_log}")
+                accelerator.log(
+                    combined_metrics,
+                    step=epoch,
+                )
 
-    # Evaluate on test data
-    test_metrics = test(
-        accelerator,
-        model,
-        test_dataloader,
-        configs.model_configs.task_type,
-        performance_metrics,
-        multi_label=configs.training_configs.multilabel,
-        multi_class=multi_class,
-        split="test",
-        label_list=list(labels_map.keys()),
-    )
-    metrics_log = " - ".join(
-        [
-            f"{metric_name}: {metric_value}"
-            for metric_name, metric_value in test_metrics.items()
-        ]
-    )
-    accelerator.print(f"Test: {metrics_log}")
-    accelerator.log(test_metrics)
+        # Evaluate on test data
+        test_metrics = test(
+            accelerator,
+            model,
+            test_dataloader,
+            configs.model_configs.task_type,
+            performance_metrics,
+            multi_label=configs.training_configs.multilabel,
+            multi_class=multi_class,
+            split="test",
+            label_list=list(labels_map.keys()),
+        )
+        metrics_log = " - ".join(
+            [
+                f"{metric_name}: {metric_value}"
+                for metric_name, metric_value in test_metrics.items()
+            ]
+        )
+        accelerator.print(f"Test: {metrics_log}")
+        accelerator.log(test_metrics)
 
-    accelerator.wait_for_everyone()
+        accelerator.wait_for_everyone()
 
-    hf_username = os.getenv("HF_USERNAME")
-    hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
-    hyperparams = []
-    for key, value in wandb_tracker_config.items():
-        hyperparams += [f"{key}_{value}"]
-    hyperparams = "__".join(hyperparams)
+        hf_username = os.getenv("HF_USERNAME")
+        hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
+        hyperparams = []
+        for key, value in wandb_tracker_config.items():
+            hyperparams += [f"{key}_{value}"]
+        hyperparams = "__".join(hyperparams)
 
-    hf_repo_name = f"{hf_username}/{sweep_name}__{hyperparams}"
+        hf_repo_name = f"{hf_username}/{sweep_name}__{hyperparams}"
 
-    huggingface_hub.create_repo(
-        hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
-    )
-    model.push_to_hub(
-        hf_repo_name,
-        state_dict=accelerator.get_state_dict(model),
-        private=True,
-        use_auth_token=hf_upload_token,
-    )
+        huggingface_hub.create_repo(
+            hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
+        )
+        model.push_to_hub(
+            hf_repo_name,
+            state_dict=accelerator.get_state_dict(model),
+            private=True,
+            use_auth_token=hf_upload_token,
+        )
 
-    accelerator.wait_for_everyone()
+        accelerator.wait_for_everyone()
 
-    # cleanup and sleep just to be sure the cuda memory is freed
-    accelerator.free_memory()
-    del model, optimizer, lr_scheduler
-    torch.cuda.empty_cache()
-    time.sleep(10)
+        # cleanup and sleep just to be sure the cuda memory is freed
+        accelerator.free_memory()
+        del model, optimizer, lr_scheduler
+        torch.cuda.empty_cache()
+        time.sleep(10)
+
+    inner_training_loop()
 
 
 def test(
