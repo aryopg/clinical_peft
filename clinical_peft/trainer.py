@@ -305,12 +305,8 @@ def train(
                             )
                         else:
                             outputs = model(**batch, labels=labels)
-                            print(
-                                "batch['input_ids'].size(): ", batch["input_ids"].size()
-                            )
-                            print("outputs.logits.size(): ", outputs.logits.size())
-                            print("labels.size(): ", labels.size())
                             loss = outputs.loss
+                            print(loss)
                     else:
                         outputs = model(**batch)
                         loss = outputs.loss
@@ -367,7 +363,6 @@ def train(
                     split="val",
                     label_list=list(labels_map.keys()),
                 )
-                print(train_metrics)
                 train_metrics_log = " - ".join(
                     [
                         f"{metric_name}: {metric_value}"
