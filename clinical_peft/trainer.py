@@ -9,7 +9,7 @@ import torch
 from accelerate import Accelerator
 from accelerate.tracking import WandBTracker
 from accelerate.utils import find_executable_batch_size
-from datasets import load_dataset
+from datasets import DatasetDict, load_dataset
 from evaluate import EvaluationModule
 from peft import PeftConfig, PeftModel, get_peft_model
 from torch.nn import functional as F
@@ -43,13 +43,65 @@ from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config, set_class_weights, set_metrics
 
 
+def setup_data_loader(
+    configs: Configs,
+    tokenizer: PreTrainedTokenizer,
+    dataset: DatasetDict,
+    batch_size: int = 16,
+):
+    if configs.model_configs.task_type in [TaskType.causal_lm]:
+        data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+    elif configs.model_configs.task_type == TaskType.seq_cls:
+        data_collator = DataCollatorWithPadding(
+            tokenizer=tokenizer,
+            padding="longest",
+            return_tensors="pt",
+        )
+    elif configs.model_configs.task_type == TaskType.token_cls:
+        data_collator = DataCollatorForTokenClassification(
+            tokenizer=tokenizer, padding="longest", return_tensors="pt"
+        )
+    elif configs.model_configs.task_type == TaskType.question_ans:
+        data_collator = DefaultDataCollator(
+            return_tensors="pt",
+        )
+
+    train_dataloader = DataLoader(
+        dataset["train"],
+        shuffle=True,
+        collate_fn=data_collator,
+        batch_size=batch_size,
+        pin_memory=True,
+    )
+    val_dataloader, test_dataloader = None, None
+    if "validation" in dataset:
+        val_dataloader = DataLoader(
+            dataset["validation"],
+            shuffle=True,
+            collate_fn=data_collator,
+            batch_size=batch_size,
+            pin_memory=True,
+        )
+    if configs.training_configs.test_size > 0 or "test" in dataset:
+        test_dataloader = DataLoader(
+            dataset["test"],
+            shuffle=True,
+            collate_fn=data_collator,
+            batch_size=batch_size,
+            pin_memory=True,
+        )
+
+    return train_dataloader, val_dataloader, test_dataloader
+
+
+@find_executable_batch_size(starting_batch_size=16)
 def train(
+    max_batch_size: int,
     configs: Configs,
     wandb_tracker: Optional[WandBTracker],
     accelerator: Accelerator,
-    train_dataloader: DataLoader,
-    val_dataloader: Optional[DataLoader] = None,
-    test_dataloader: Optional[DataLoader] = None,
+    tokenizer: PreTrainedTokenizer,
+    dataset: DatasetDict,
     sweep_name: str = None,
 ) -> None:
     wandb_tracker_config = wandb_tracker.config if wandb_tracker is not None else None
@@ -57,6 +109,12 @@ def train(
     accelerator.print("Loading model:")
     accelerator.print(configs.model_configs.dict())
     accelerator.print(wandb_tracker_config)
+
+    # Setup data loader
+    accelerator.print(max_batch_size)
+    train_dataloader, val_dataloader, test_dataloader = setup_data_loader(
+        configs, tokenizer, dataset, max_batch_size
+    )
 
     num_epochs = configs.training_configs.epochs
     # Load Model
@@ -473,9 +531,7 @@ def test(
     return eval_metrics
 
 
-@find_executable_batch_size(starting_batch_size=16)
 def run(
-    max_batch_size: int,
     accelerator: Accelerator,
     configs: Configs,
     wandb_entity: str,
@@ -538,58 +594,14 @@ def run(
 
     with accelerator.main_process_first():
         dataset = preprocess_dataset(dataset, configs, tokenizer)
-        accelerator.print(max_batch_size)
     accelerator.wait_for_everyone()
-
-    if configs.model_configs.task_type in [TaskType.causal_lm]:
-        data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
-    elif configs.model_configs.task_type == TaskType.seq_cls:
-        data_collator = DataCollatorWithPadding(
-            tokenizer=tokenizer,
-            padding="longest",
-            return_tensors="pt",
-        )
-    elif configs.model_configs.task_type == TaskType.token_cls:
-        data_collator = DataCollatorForTokenClassification(
-            tokenizer=tokenizer, padding="longest", return_tensors="pt"
-        )
-    elif configs.model_configs.task_type == TaskType.question_ans:
-        data_collator = DefaultDataCollator(
-            return_tensors="pt",
-        )
-
-    train_dataloader = DataLoader(
-        dataset["train"],
-        shuffle=True,
-        collate_fn=data_collator,
-        batch_size=max_batch_size,
-        pin_memory=True,
-    )
-    val_dataloader, test_dataloader = None, None
-    if "validation" in dataset:
-        val_dataloader = DataLoader(
-            dataset["validation"],
-            shuffle=True,
-            collate_fn=data_collator,
-            batch_size=max_batch_size,
-            pin_memory=True,
-        )
-    if configs.training_configs.test_size > 0 or "test" in dataset:
-        test_dataloader = DataLoader(
-            dataset["test"],
-            shuffle=True,
-            collate_fn=data_collator,
-            batch_size=max_batch_size,
-            pin_memory=True,
-        )
 
     train(
         configs,
         wandb_tracker.tracker if wandb_tracker is not None else None,
         accelerator,
-        train_dataloader,
-        val_dataloader,
-        test_dataloader,
+        tokenizer,
+        dataset,
         sweep_name,
         # outputs_dir,
     )
