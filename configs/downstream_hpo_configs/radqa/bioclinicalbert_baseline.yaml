@@ -1,0 +1,26 @@
+model_configs:
+  peft_type: null
+  task_type: "question_ans"
+  model_name_or_path: "emilyalsentzer/Bio_ClinicalBERT"
+  peft_hyperparameters: null
+  model_hyperparameters:
+    learning_rate: 0.0001
+    warmup_steps_ratio: 0.06
+    max_seq_len: 512
+    gradient_accumulation_steps: 2
+training_configs:
+  dataset_paths:
+    - aryopg/radqa
+  multilabel: true
+  random_seed: 1234
+  device: 0
+  num_process: 8
+  test_size: 0.1
+  epochs: 50
+  steps: 1000000
+  batch_size: 32
+  log_steps: 1000000
+  eval_steps: 1000000  # Only evaluate at the end
+  checkpoint_steps: 1000000  # Only checkpoint at the end
+  max_sweep_count: 1
+  outputs_dir: "outputs"

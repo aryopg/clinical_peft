@@ -1,6 +1,6 @@
 model_configs:
   peft_type: null
-  task_type: "seq_cls"
+  task_type: "token_cls"
   model_name_or_path: "aryopg/umlsbert"
   peft_hyperparameters: null
   model_hyperparameters:

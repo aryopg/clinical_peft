@@ -1,9 +1,9 @@
 model_configs:
   peft_type: "lora"
-  task_type: "seq_cls"
+  task_type: "token_cls"
   model_name_or_path: "bionlp/bluebert_pubmed_mimic_uncased_L-12_H-768_A-12"
   peft_hyperparameters: 
-    method: bayes
+    method: grid
     metric:
       name: eval_ppl
       goal: minimize

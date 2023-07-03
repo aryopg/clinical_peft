@@ -1,12 +1,12 @@
 model_configs:
   peft_type: "lora"
-  task_type: "seq_cls"
+  task_type: "token_cls"
   model_name_or_path: "chaoyi-wu/PMC_LLAMA_7B"
   pretrained_peft_name_or_path: "aryopg/mimic-iv__PMC_LLAMA_7B__lora__lora_alpha_4__lora_dropout_0.2__r_4"
   pretrained_peft_fine_tune: false
   downstream_peft: true
   peft_hyperparameters:
-    method: bayes
+    method: grid
     metric:
       name: val_roc_auc
       goal: maximize
@@ -18,6 +18,7 @@ model_configs:
       lora_dropout: 
         values: [0.0, 0.1, 0.2]
   model_hyperparameters:
+    bf16: True
     learning_rate: 0.0001
     warmup_steps_ratio: 0.06
     max_seq_len: 512
