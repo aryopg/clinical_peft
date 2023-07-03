@@ -181,7 +181,7 @@ def train(
             # Setup class weighting
             if not configs.training_configs.multilabel:
                 class_weights = set_class_weights(
-                    train_dataloader.dataset["labels"], labels_map
+                    train_dataloader.dataset["labels"], labels_map, use_bf16
                 ).to(accelerator.device)
 
             # Setup performance metrics
