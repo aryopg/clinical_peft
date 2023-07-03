@@ -21,7 +21,7 @@ def load_peft_config(
     )
 
 
-def set_class_weights(train_labels: list, labels_map: dict):
+def set_class_weights(train_labels: list, labels_map: dict, bf16: bool = False):
     num_train_data = len(train_labels)
 
     label_counts = Counter(train_labels)
@@ -31,6 +31,9 @@ def set_class_weights(train_labels: list, labels_map: dict):
             for i in range(len(labels_map))
         ]
     )
+
+    if bf16:
+        class_weights = class_weights.to(torch.bfloat16)
 
     return class_weights
 
