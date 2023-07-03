@@ -306,7 +306,6 @@ def train(
                         else:
                             outputs = model(**batch, labels=labels)
                             loss = outputs.loss
-                            print(loss)
                     else:
                         outputs = model(**batch)
                         loss = outputs.loss
