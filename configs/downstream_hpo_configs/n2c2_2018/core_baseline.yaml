@@ -4,7 +4,7 @@ model_configs:
   model_name_or_path: "bvanaken/CORe-clinical-outcome-biobert-v1"
   peft_hyperparameters: null
   model_hyperparameters:
-    learning_rate: 0.001
+    learning_rate: 0.00005
     warmup_steps_ratio: 0.06
     max_seq_len: 512
     gradient_accumulation_steps: 2
