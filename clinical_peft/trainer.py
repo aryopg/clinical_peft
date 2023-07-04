@@ -38,7 +38,7 @@ from .constants import (
     PEFT_CONFIGS,
 )
 from .models.llama import LlamaForQuestionAnswering, LlamaForTokenClassification
-from .utils.common_utils import setup_random_seed
+from .utils.common_utils import print_gpu_utilization, setup_random_seed
 from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config, set_class_weights, set_metrics
 
@@ -174,6 +174,9 @@ def train(
                     torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
                 )
 
+        gpu_utilisation = print_gpu_utilization()
+        accelerator.print(f"GPU memory occupied: {gpu_utilisation} MB.")
+
         class_weights = None
         performance_metrics = None
         multi_class = None
@@ -241,6 +244,9 @@ def train(
                             else:
                                 param.requires_grad = False
 
+        gpu_utilisation = print_gpu_utilization()
+        accelerator.print(f"GPU memory occupied: {gpu_utilisation} MB.")
+
         # optimizer
         optimizer = torch.optim.AdamW(
             params=[param for param in model.parameters() if param.requires_grad],
@@ -282,6 +288,9 @@ def train(
 
         if torch.cuda.device_count() > 1:
             accelerator.sync_gradients = False
+
+        gpu_utilisation = print_gpu_utilization()
+        accelerator.print(f"GPU memory occupied: {gpu_utilisation} MB.")
 
         for epoch in range(num_epochs):
             accelerator.print(f" >>> Epoch {epoch + 1} / {num_epochs}")
