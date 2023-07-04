@@ -15,7 +15,7 @@ model_configs:
       lora_dropout: 
         values: [0.0, 0.1, 0.2]
   model_hyperparameters:
-    learning_rate: 0.0001
+    learning_rate: 0.001
     warmup_steps_ratio: 0.06
     max_seq_len: 512
     gradient_accumulation_steps: 2
