@@ -251,6 +251,9 @@ def train(
                                 param.requires_grad = False
 
         # optimizer
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                print(name)
         optimizer = torch.optim.AdamW(
             params=[param for param in model.parameters() if param.requires_grad],
             lr=configs.model_configs.model_hyperparameters.learning_rate,
