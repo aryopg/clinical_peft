@@ -495,9 +495,7 @@ def test(
                 elif metric_name.startswith("f1_"):
                     metric.add_batch(predictions=predictions, references=references)
         elif task == TaskType.token_cls:
-            print("outputs.logits: ", outputs.logits)
             predictions = outputs.logits.argmax(dim=-1)
-            print("predictions: ", predictions)
             predictions, references = accelerator.gather((predictions, batch["labels"]))
 
             true_predictions, true_labels = [], []
@@ -509,9 +507,6 @@ def test(
                         true_label += [label_list[l]]
                 true_predictions += [true_prediction]
                 true_labels += [true_label]
-
-            print("true_predictions: ", true_predictions)
-            print("true_labels: ", true_labels)
 
             metrics["seqeval"].add_batch(
                 predictions=true_predictions, references=true_labels
