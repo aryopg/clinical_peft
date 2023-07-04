@@ -309,12 +309,10 @@ def train(
 
                         if class_weights is not None:
                             outputs = model(**batch)
-                            print("outputs.logits: ", outputs.logits)
-                            print("outputs.logits.size(): ", outputs.logits.size())
-                            print("labels: ", labels)
-                            print("labels.size(): ", labels.size())
                             loss = F.cross_entropy(
-                                outputs.logits, labels, weight=class_weights
+                                outputs.logits.view(-1, len(labels_map)),
+                                labels.view(-1),
+                                weight=class_weights,
                             )
                         else:
                             outputs = model(**batch, labels=labels)
