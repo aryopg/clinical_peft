@@ -484,16 +484,20 @@ def test(
                 elif metric_name.startswith("f1_"):
                     metric.add_batch(predictions=predictions, references=references)
         elif task == TaskType.token_cls:
+            print("outputs.logits: ", outputs.logits)
             predictions = outputs.logits.argmax(dim=-1)
             print("predictions: ", predictions)
             predictions, references = accelerator.gather((predictions, batch["labels"]))
 
             true_predictions, true_labels = [], []
             for prediction, label in zip(predictions, references):
+                true_prediction, true_label = [], []
                 for p, l in zip(prediction, label):
                     if l != -100:
-                        true_predictions += [label_list[p]]
-                        true_labels += [label_list[l]]
+                        true_prediction += [label_list[p]]
+                        true_label += [label_list[l]]
+                true_predictions += [true_prediction]
+                true_labels += [true_label]
 
             print("true_predictions: ", true_predictions)
             print("true_labels: ", true_labels)
