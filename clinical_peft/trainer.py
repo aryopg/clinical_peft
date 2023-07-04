@@ -485,15 +485,18 @@ def test(
                     metric.add_batch(predictions=predictions, references=references)
         elif task == TaskType.token_cls:
             predictions = outputs.logits.argmax(dim=-1)
+            print("predictions: ", predictions)
             predictions, references = accelerator.gather((predictions, batch["labels"]))
-            true_predictions = [
-                [label_list[p] for (p, l) in zip(prediction, label) if l != -100]
-                for prediction, label in zip(predictions, references)
-            ]
-            true_labels = [
-                [label_list[l] for (p, l) in zip(prediction, label) if l != -100]
-                for prediction, label in zip(predictions, references)
-            ]
+
+            true_predictions, true_labels = [], []
+            for prediction, label in zip(predictions, references):
+                for p, l in zip(prediction, label):
+                    if l != -100:
+                        true_predictions += [label_list[p]]
+                        true_labels += [label_list[l]]
+
+            print("true_predictions: ", true_predictions)
+            print("true_labels: ", true_labels)
 
             metrics["seqeval"].add_batch(
                 predictions=true_predictions, references=true_labels
