@@ -189,6 +189,15 @@ def train(
                 labels_map, configs.training_configs.multilabel
             )
         elif configs.model_configs.task_type == TaskType.token_cls and labels_map:
+            class_weights = set_class_weights(
+                [
+                    label
+                    for sample_labels in dataset["train"]["labels"]
+                    for label in sample_labels
+                ],
+                labels_map,
+                use_bf16,
+            ).to(accelerator.device)
             performance_metrics = {"seqeval": evaluate.load("seqeval")}
 
         if configs.model_configs.pretrained_peft_name_or_path:
