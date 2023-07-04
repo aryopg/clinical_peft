@@ -544,7 +544,8 @@ def test(
                     average="macro"
                 )["f1"]
             elif metric_name == "seqeval":
-                ner_metrics = metric.compute(scheme="IOB2")
+                # ner_metrics = metric.compute(scheme="IOB2")
+                ner_metrics = metric.compute()
                 eval_metrics[f"{split}_precision"] = ner_metrics["overall_precision"]
                 eval_metrics[f"{split}_recall"] = ner_metrics["overall_recall"]
                 eval_metrics[f"{split}_f1"] = ner_metrics["overall_f1"]

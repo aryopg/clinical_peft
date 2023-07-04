@@ -240,53 +240,12 @@ def preprocess_dataset(
             remove_columns=dataset["train"].column_names,
         )
 
-        dataset_name = configs.training_configs.dataset_paths[0].split("/")[-1]
-        # labels_map = {v: k for k, v in LABELS_MAP[dataset_name].items()}
-        iob_ner_map = IOB_NER_MAP[dataset_name]
-        print("train")
-        labels = processed_datasets["train"]["labels"]
-        label_counts = np.zeros(len(iob_ner_map), dtype=int)
-
-        for sample_labels in labels:
-            non_o_labels = [label for label in sample_labels if label != 0]
-            unique_labels, counts = np.unique(non_o_labels, return_counts=True)
-            unique_labels = unique_labels.astype(int)
-            label_counts[unique_labels] += counts
-
-        for i, label in enumerate(list(iob_ner_map.keys())):
-            print(
-                f"{label}: {label_counts[i]} ({label_counts[i] / np.sum(label_counts)})"
-            )
-
-        print("validation")
-        labels = processed_datasets["validation"]["labels"]
-        label_counts = np.zeros(len(iob_ner_map), dtype=int)
-
-        for sample_labels in labels:
-            non_o_labels = [label for label in sample_labels if label != 0]
-            unique_labels, counts = np.unique(non_o_labels, return_counts=True)
-            unique_labels = unique_labels.astype(int)
-            label_counts[unique_labels] += counts
-
-        for i, label in enumerate(list(iob_ner_map.keys())):
-            print(
-                f"{label}: {label_counts[i]} ({label_counts[i] / np.sum(label_counts)})"
-            )
-
-        print("test")
-        labels = processed_datasets["test"]["labels"]
-        label_counts = np.zeros(len(iob_ner_map), dtype=int)
-
-        for sample_labels in labels:
-            non_o_labels = [label for label in sample_labels if label != 0]
-            unique_labels, counts = np.unique(non_o_labels, return_counts=True)
-            unique_labels = unique_labels.astype(int)
-            label_counts[unique_labels] += counts
-
-        for i, label in enumerate(list(iob_ner_map.keys())):
-            print(
-                f"{label}: {label_counts[i]} ({label_counts[i] / np.sum(label_counts)})"
-            )
+        print("================ TRAIN ================")
+        print(processed_datasets["train"]["text"][:10])
+        print(processed_datasets["train"]["labels"][:10])
+        print("================ VALIDATION ================")
+        print(processed_datasets["validation"]["text"][:10])
+        print(processed_datasets["validation"]["labels"][:10])
 
     if (
         "test" not in dataset
