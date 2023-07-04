@@ -108,6 +108,8 @@ def train(
     accelerator.print(configs.model_configs.dict())
     accelerator.print(wandb_tracker_config)
 
+    dataset_name = configs.training_configs.dataset_paths[0].split("/")[-1]
+
     @find_executable_batch_size(starting_batch_size=configs.training_configs.batch_size)
     def inner_training_loop(max_batch_size):
         # Setup data loader
@@ -127,9 +129,7 @@ def train(
                 return_dict=True,
             )
         elif configs.model_configs.task_type == TaskType.seq_cls:
-            labels_map = LABELS_MAP[
-                configs.training_configs.dataset_paths[0].split("/")[-1]
-            ]
+            labels_map = LABELS_MAP[dataset_name]
 
             model = AutoModelForSequenceClassification.from_pretrained(
                 configs.model_configs.model_name_or_path,
@@ -152,9 +152,7 @@ def train(
                     torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
                 )
         elif configs.model_configs.task_type == TaskType.token_cls:
-            labels_map = IOB_NER_MAP[
-                configs.training_configs.dataset_paths[0].split("/")[-1]
-            ]
+            labels_map = IOB_NER_MAP[dataset_name]
             if "llama" in configs.model_configs.model_name_or_path:
                 model = LlamaForTokenClassification.from_pretrained(
                     configs.model_configs.model_name_or_path,
@@ -189,15 +187,15 @@ def train(
                 labels_map, configs.training_configs.multilabel
             )
         elif configs.model_configs.task_type == TaskType.token_cls and labels_map:
-            # class_weights = set_class_weights(
-            #     [
-            #         label
-            #         for sample_labels in dataset["train"]["labels"]
-            #         for label in sample_labels
-            #     ],
-            #     labels_map,
-            #     use_bf16,
-            # ).to(accelerator.device)
+            class_weights = set_class_weights(
+                [
+                    label
+                    for sample_labels in dataset["train"]["labels"]
+                    for label in sample_labels
+                ],
+                labels_map,
+                use_bf16,
+            ).to(accelerator.device)
             performance_metrics = {"seqeval": evaluate.load("seqeval")}
 
         if configs.model_configs.pretrained_peft_name_or_path:
@@ -363,6 +361,7 @@ def train(
                     multi_class=multi_class,
                     split="train",
                     label_list=list(labels_map.keys()),
+                    dataset_name=dataset_name,
                 )
 
                 val_metrics = test(
@@ -375,6 +374,7 @@ def train(
                     multi_class=multi_class,
                     split="val",
                     label_list=list(labels_map.keys()),
+                    dataset_name=dataset_name,
                 )
                 train_metrics_log = " - ".join(
                     [
@@ -407,6 +407,7 @@ def train(
             multi_class=multi_class,
             split="test",
             label_list=list(labels_map.keys()),
+            dataset_name=dataset_name,
         )
         metrics_log = " - ".join(
             [
@@ -459,7 +460,10 @@ def test(
     multi_class: Optional[str] = None,
     split: str = "val",
     label_list: list = [],
+    dataset_name: str = "",
 ) -> dict:
+    if task == TaskType.token_cls:
+        grouped_labels_list = list(LABELS_MAP[dataset_name].keys())
     model.eval()
     total_loss = 0
     for eval_step, batch in enumerate(tqdm(dataloader)):
@@ -545,6 +549,10 @@ def test(
                 eval_metrics[f"{split}_recall"] = ner_metrics["overall_recall"]
                 eval_metrics[f"{split}_f1"] = ner_metrics["overall_f1"]
                 eval_metrics[f"{split}_accuracy"] = ner_metrics["overall_accuracy"]
+                for label_name in grouped_labels_list:
+                    eval_metrics[f"{split}_{label_name}_f1"] = ner_metrics[label_name][
+                        "f1"
+                    ]
 
     return eval_metrics
 
