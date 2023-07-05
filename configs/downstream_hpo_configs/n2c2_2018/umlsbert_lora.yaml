@@ -5,7 +5,7 @@ model_configs:
   peft_hyperparameters: 
     method: grid
     metric:
-      name: eval_ppl
+      name: val_f1
       goal: minimize
     parameters:
       r:

@@ -8,7 +8,7 @@ model_configs:
   peft_hyperparameters:
     method: grid
     metric:
-      name: val_roc_auc
+      name: val_f1
       goal: maximize
     parameters:
       r:
