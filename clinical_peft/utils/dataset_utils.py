@@ -195,9 +195,11 @@ def preprocess_ner_dataset(
         )
 
         mapped_labels = []
-        for tags in dataset[f"tags"]:
-            seq_len = len(tokenized_inputs["input_ids"][0])
+        for sample_id, tags in enumerate(dataset[f"tags"]):
+            seq_len = len(tokenized_inputs["input_ids"][sample_id])
             iob_tags = ["O"] * seq_len
+
+            offset = tokenized_inputs["offset_mapping"][sample_id]
 
             for tag in tags:
                 start = tag["start"]
@@ -208,12 +210,14 @@ def preprocess_ner_dataset(
                 token_start = None
                 token_end = None
 
-                for idx, (offset_start, offset_end) in enumerate(
-                    tokenized_inputs["offset_mapping"][0]
-                ):
-                    if offset_start <= start and offset_end > start:
+                for idx, (offset_start, offset_end) in enumerate(offset):
+                    if (
+                        token_start is None
+                        and start >= offset_start
+                        and start < offset_end
+                    ):
                         token_start = idx
-                    if offset_start < end and offset_end >= end:
+                    if token_end is None and end > offset_start and end <= offset_end:
                         token_end = idx
 
                 if token_start is not None and token_end is not None:
@@ -295,15 +299,6 @@ def preprocess_dataset(
             batched=True,
             remove_columns=dataset["train"].column_names,
         )
-
-        print("================ TRAIN ================")
-        for i in range(10):
-            print(tokenizer.decode(processed_datasets["train"]["input_ids"][i]))
-            print(processed_datasets["train"]["labels"][i])
-        print("================ VALIDATION ================")
-        for i in range(10):
-            print(tokenizer.decode(processed_datasets["validation"]["input_ids"][i]))
-            print(processed_datasets["validation"]["labels"][i])
 
     if (
         "test" not in dataset
