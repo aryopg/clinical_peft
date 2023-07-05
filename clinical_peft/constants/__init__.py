@@ -32,6 +32,7 @@ LABELS_MAP = {
     "trec-los": {"LT3D": 0, "3DTO7D": 1, "1WTO2W": 2, "GT2W": 3},
     "core-diagnosis": DIAGNOSES_MAP,
     "core-procedure": PROCEDURES_MAP,
+    "n2c2-2010": {"problem", "test", "treatment"},
     "n2c2-2018": {
         "ADE": 0,
         "Dosage": 1,
@@ -71,7 +72,21 @@ IOB_NER_MAP = {
                 "I-Strength",
             ]
         )
-    }
+    },
+    "n2c2-2010": {
+        tag: i
+        for i, tag in enumerate(
+            [
+                "O",
+                "B-problem",
+                "I-problem",
+                "B-test",
+                "I-test",
+                "B-treatment",
+                "I-treatment",
+            ]
+        )
+    },
 }
 
 # PMC-LLaMA does not use these special characters, we're reintroducing it
