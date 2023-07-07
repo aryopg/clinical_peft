@@ -16,6 +16,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import (
+    AdamW,
     AutoModelForCausalLM,
     AutoModelForQuestionAnswering,
     AutoModelForSequenceClassification,
@@ -252,7 +253,7 @@ def train(
         for name, param in model.named_parameters():
             if param.requires_grad:
                 print(name)
-        optimizer = torch.optim.AdamW(
+        optimizer = AdamW(
             params=[param for param in model.parameters() if param.requires_grad],
             lr=configs.model_configs.model_hyperparameters.learning_rate,
         )
