@@ -234,6 +234,14 @@ def preprocess_ner_dataset(
             label_ids = [iob_ner_map[tag] for tag in iob_tags]
             mapped_labels.append(label_ids)
 
+        iob_ner_map_rev = {v: k for k, v in iob_ner_map.items()}
+        for i in range(10):
+            for index, label in zip(
+                tokenizer.convert_ids_to_tokens(tokenized_inputs["input_ids"][i]),
+                mapped_labels[i],
+            ):
+                print(index, iob_ner_map_rev[label])
+
         tokenized_inputs["labels"] = mapped_labels
 
     return tokenized_inputs
