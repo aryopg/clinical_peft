@@ -2,6 +2,7 @@ import ast
 
 import numpy as np
 from datasets import DatasetDict
+from tqdm import tqdm
 from transformers import PreTrainedTokenizer
 
 from ..configs import Configs, TaskType
@@ -138,19 +139,12 @@ def preprocess_ner_dataset(
         )
         iob_ner_map = IOB_NER_MAP[dataset_name]
 
-        print("dataset['text'][3]: ", dataset["text"][3])
-        print("dataset['concepts'][3]: ", dataset["concepts"][3])
-        print("dataset['assertions'][3]: ", dataset["assertions"][3])
-        print("dataset['relations'][3]: ", dataset["relations"][3])
         mapped_labels = []
         for tags in dataset[f"concepts"]:
-            print("tags: ", tags)
             seq_len = len(tokenized_inputs["input_ids"][0])
             iob_tags = ["O"] * seq_len
 
             for tag in tags:
-                print("tag: ", tag)
-                print("tag.keys(): ", tag.keys())
                 start = tag["start"]
                 end = tag["end"]
                 tag_id = tag["concept"]
@@ -191,15 +185,19 @@ def preprocess_ner_dataset(
             padding="max_length",
             truncation=True,
             return_offsets_mapping=True,
+            return_overflowing_tokens=True,
             return_tensors="pt",
         )
 
         mapped_labels = []
-        for sample_id, tags in enumerate(dataset[f"tags"]):
-            seq_len = len(tokenized_inputs["input_ids"][sample_id])
+        for sequence_id, sample_id in enumerate(
+            tqdm(tokenized_inputs[f"overflow_to_sample_mapping"])
+        ):
+            seq_len = len(tokenized_inputs["input_ids"][sequence_id])
             iob_tags = ["O"] * seq_len
 
-            offset = tokenized_inputs["offset_mapping"][sample_id]
+            offset = tokenized_inputs["offset_mapping"][sequence_id]
+            tags = dataset[f"tags"][sample_id]
 
             for tag in tags:
                 start = tag["start"]
@@ -234,15 +232,11 @@ def preprocess_ner_dataset(
             label_ids = [iob_ner_map[tag] for tag in iob_tags]
             mapped_labels.append(label_ids)
 
-        iob_ner_map_rev = {v: k for k, v in iob_ner_map.items()}
-        for i in range(10):
-            for index, label in zip(
-                tokenizer.convert_ids_to_tokens(tokenized_inputs["input_ids"][i]),
-                mapped_labels[i],
-            ):
-                print(index, iob_ner_map_rev[label])
-
         tokenized_inputs["labels"] = mapped_labels
+
+        tokenized_inputs = tokenized_inputs.remove_columns(
+            ["overflow_to_sample_mapping"]
+        )
 
     return tokenized_inputs
 
