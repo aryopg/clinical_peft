@@ -306,7 +306,13 @@ def train(
                         batch = {
                             k: v
                             for k, v in batch.items()
-                            if k not in ["token_type_ids", "offset_mapping", "labels"]
+                            if k
+                            not in [
+                                "token_type_ids",
+                                "offset_mapping",
+                                "labels",
+                                "overflow_to_sample_mapping",
+                            ]
                         }
 
                         if class_weights is not None:

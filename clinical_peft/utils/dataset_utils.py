@@ -234,10 +234,6 @@ def preprocess_ner_dataset(
 
         tokenized_inputs["labels"] = mapped_labels
 
-        tokenized_inputs = tokenized_inputs.remove_columns(
-            ["overflow_to_sample_mapping"]
-        )
-
     return tokenized_inputs
 
 
