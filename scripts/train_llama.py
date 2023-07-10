@@ -80,14 +80,7 @@ def main() -> None:
         gradient_accumulation_steps=10,
         evaluation_strategy="epoch",
         save_strategy="epoch",
-        num_train_epochs=5,
-        # fp16=True,
-        # fsdp="full_shard",
-        # fsdp_config={
-        #     "fsdp_transformer_layer_cls_to_wrap": "LlamaDecoderLayer",
-        #     "fsdp_backward_prefetch": "backward_pre",
-        #     "fsdp_forward_prefetch": True,
-        # },
+        num_train_epochs=1,
     )
 
     trainer = Trainer(
