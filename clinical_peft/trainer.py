@@ -477,7 +477,8 @@ def test(
         batch = {
             k: v
             for k, v in batch.items()
-            if k not in ["token_type_ids", "offset_mapping"]
+            if k
+            not in ["token_type_ids", "offset_mapping", "overflow_to_sample_mapping"]
         }
         with torch.no_grad():
             outputs = model(**batch)
