@@ -504,7 +504,8 @@ def test(
                     continue
                 if metric_name == "roc_auc":
                     metric.add_batch(
-                        prediction_scores=prediction_scores, references=references
+                        prediction_scores=prediction_scores.to(torch.float32),
+                        references=references,
                     )
                 elif metric_name.startswith("f1_"):
                     metric.add_batch(predictions=predictions, references=references)
