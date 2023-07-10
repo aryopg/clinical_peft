@@ -12,6 +12,7 @@ load_dotenv("env/.env")
 
 import huggingface_hub
 import torch
+import torch.distributed as dist
 from datasets import load_dataset
 from pynvml import *
 from torch.utils.data import DataLoader
@@ -44,7 +45,15 @@ def print_gpu_utilization():
 
 
 def main() -> None:
-    max_batch_size = 32
+    try:
+        dist.init_process_group(
+            backend="nccl",
+            init_method="env://",
+            timeout=datetime.timedelta(seconds=100000000),
+        )
+    except ValueError:
+        pass
+
     model_path = "aryopg/llama-7b"
 
     huggingface_hub.login(token=os.getenv("HF_DOWNLOAD_TOKEN", ""))
