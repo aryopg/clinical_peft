@@ -40,7 +40,7 @@ from .constants import (
     PEFT_CONFIGS,
 )
 from .models.llama import LlamaForQuestionAnswering, LlamaForTokenClassification
-from .utils.common_utils import setup_random_seed
+from .utils import common_utils
 from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config, set_class_weights, set_metrics
 
@@ -104,6 +104,8 @@ def train(
     dataset: DatasetDict,
     sweep_name: str = None,
 ) -> None:
+    common_utils.setup_random_seed(configs.training_configs.random_seed)
+
     if len(wandb_tracker.config.keys()) > 0:
         peft_model_configs = wandb_tracker.config
     else:
@@ -632,7 +634,7 @@ def run(
     sweep_name: str,
     outputs_dir: str,
 ) -> None:
-    setup_random_seed(configs.training_configs.random_seed)
+    common_utils.setup_random_seed(configs.training_configs.random_seed)
 
     # Initialise tracker
     wandb_tracker = None
