@@ -104,7 +104,11 @@ def train(
     dataset: DatasetDict,
     sweep_name: str = None,
 ) -> None:
+    print(wandb_tracker.config)
+    print(wandb_tracker.config is not None)
     if wandb_tracker.config:
+        print("tis not empty")
+    if wandb_tracker.config is not None:
         peft_model_configs = wandb_tracker.config
     else:
         peft_model_configs = configs.model_configs.peft_hyperparameters
