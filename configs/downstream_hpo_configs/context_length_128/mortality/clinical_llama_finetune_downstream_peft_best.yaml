@@ -1,0 +1,32 @@
+model_configs:
+  peft_type: "lora"
+  task_type: "seq_cls"
+  model_name_or_path: "aryopg/llama-7b"
+  pretrained_peft_name_or_path: "aryopg/llama-7b__LORA__lora_alpha_32__lora_dropout_0__r_16"
+  pretrained_peft_fine_tune: true
+  downstream_peft: true
+  peft_hyperparameters:
+    r: 8
+    lora_alpha: 4
+    lora_dropout: 0.2
+  model_hyperparameters:
+    bf16: True
+    learning_rate: 0.00005
+    warmup_steps_ratio: 0.06
+    max_seq_len: 128
+    gradient_accumulation_steps: 10
+training_configs:
+  dataset_paths:
+    - aryopg/trec-mortality
+  random_seed: 1234
+  device: 0
+  num_process: 8
+  test_size: 0.1
+  epochs: 10
+  steps: 1000000
+  batch_size: 8
+  log_steps: 1000000
+  eval_steps: 1000000  # Only evaluate at the end
+  checkpoint_steps: 1000000  # Only checkpoint at the end
+  max_sweep_count: 10
+  outputs_dir: "outputs"
