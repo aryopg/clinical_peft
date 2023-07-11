@@ -209,6 +209,9 @@ def train(
                 #     inference_mode=False,
                 #     **peft_model_configs,
                 # )
+                print("r: ", model.peft_config["default"].r)
+                print("lora_alpha: ", model.peft_config["default"].lora_alpha)
+                print("lora_dropout: ", model.peft_config["default"].lora_dropout)
                 downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type.lower()](
                     task_type=model.peft_config["default"].task_type,
                     inference_mode=False,
