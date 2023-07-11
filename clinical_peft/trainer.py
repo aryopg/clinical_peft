@@ -107,10 +107,10 @@ def train(
     print(wandb_tracker.config)
     print(wandb_tracker.config is not None)
     print(not wandb_tracker.config)
-    print(len(wandb_tracker.config) == 0)
+    print(len(wandb_tracker.config.keys()) == 0)
     if wandb_tracker.config:
         print("tis not empty")
-    if wandb_tracker.config is not None:
+    if len(wandb_tracker.config.keys()) > 0:
         peft_model_configs = wandb_tracker.config
     else:
         peft_model_configs = configs.model_configs.peft_hyperparameters
