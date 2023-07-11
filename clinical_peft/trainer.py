@@ -106,6 +106,8 @@ def train(
 ) -> None:
     print(wandb_tracker.config)
     print(wandb_tracker.config is not None)
+    print(not wandb_tracker.config)
+    print(len(wandb_tracker.config) == 0)
     if wandb_tracker.config:
         print("tis not empty")
     if wandb_tracker.config is not None:
