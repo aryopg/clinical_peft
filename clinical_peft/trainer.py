@@ -103,11 +103,14 @@ def train(
     dataset: DatasetDict,
     sweep_name: str = None,
 ) -> None:
-    wandb_tracker_config = wandb_tracker.config if wandb_tracker is not None else None
+    if wandb_tracker is not None:
+        peft_model_configs = wandb_tracker.config
+    else:
+        peft_model_configs = configs.model_configs.peft_hyperparameters
 
     accelerator.print("Loading model:")
     accelerator.print(configs.model_configs.dict())
-    accelerator.print(wandb_tracker_config)
+    accelerator.print(peft_model_configs)
 
     dataset_name = configs.training_configs.dataset_paths[0].split("/")[-1]
 
@@ -188,15 +191,6 @@ def train(
                 labels_map, configs.training_configs.multilabel
             )
         elif configs.model_configs.task_type == TaskType.token_cls and labels_map:
-            # class_weights = set_class_weights(
-            #     [
-            #         label
-            #         for sample_labels in dataset["train"]["labels"]
-            #         for label in sample_labels
-            #     ],
-            #     labels_map,
-            #     use_bf16,
-            # ).to(accelerator.device)
             performance_metrics = {"seqeval": evaluate.load("seqeval")}
 
         if configs.model_configs.pretrained_peft_name_or_path:
@@ -212,7 +206,7 @@ def train(
                 downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type.lower()](
                     task_type=model.peft_config["default"].task_type,
                     inference_mode=False,
-                    **wandb_tracker_config,
+                    **peft_model_configs,
                 )
 
                 model.add_adapter("lora_downstream", downstream_peft_config)
@@ -231,7 +225,7 @@ def train(
                 peft_config: PeftConfig = load_peft_config(
                     configs.model_configs.peft_type,
                     configs.model_configs.task_type,
-                    wandb_tracker_config,
+                    peft_model_configs,
                 )
 
                 accelerator.print(peft_config)
@@ -430,7 +424,7 @@ def train(
         hf_username = os.getenv("HF_USERNAME")
         hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
         hyperparams = []
-        for key, value in wandb_tracker_config.items():
+        for key, value in peft_model_configs.items():
             hyperparams += [f"{key}_{value}"]
         hyperparams = "__".join(hyperparams)
 

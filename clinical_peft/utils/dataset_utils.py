@@ -1,4 +1,5 @@
 import ast
+from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 from datasets import DatasetDict
@@ -123,116 +124,201 @@ def preprocess_qa_dataset(
     return processed_datasets
 
 
+# def preprocess_ner_dataset(
+#     dataset: DatasetDict, configs: Configs, tokenizer: PreTrainedTokenizer
+# ):
+#     dataset_name = configs.training_configs.dataset_paths[0].split("/")[-1]
+
+#     if dataset_name == "n2c2-2010":
+#         tokenized_inputs = tokenizer(
+#             dataset["text"],
+#             max_length=configs.model_configs.model_hyperparameters.max_seq_len,
+#             padding="max_length",
+#             truncation=True,
+#             return_offsets_mapping=True,
+#             return_tensors="pt",
+#         )
+#         iob_ner_map = IOB_NER_MAP[dataset_name]
+
+#         mapped_labels = []
+#         for tags in dataset[f"concepts"]:
+#             seq_len = len(tokenized_inputs["input_ids"][0])
+#             iob_tags = ["O"] * seq_len
+
+#             for tag in tags:
+#                 start = tag["start"]
+#                 end = tag["end"]
+#                 tag_id = tag["concept"]
+
+#                 # Find the subword token indices corresponding to the character offsets
+#                 token_start = None
+#                 token_end = None
+
+#                 for idx, (offset_start, offset_end) in enumerate(
+#                     tokenized_inputs["offset_mapping"][0]
+#                 ):
+#                     if offset_start <= start and offset_end > start:
+#                         token_start = idx
+#                     if offset_start < end and offset_end >= end:
+#                         token_end = idx
+
+#                 if token_start is not None and token_end is not None:
+#                     if token_start == token_end:
+#                         # Entity is within a single subword token
+#                         iob_tags[token_start] = "B-" + str(tag_id)
+#                     else:
+#                         # Entity spans multiple subword tokens
+#                         iob_tags[token_start] = "B-" + str(tag_id)
+#                         iob_tags[token_start + 1 : token_end + 1] = [
+#                             "I-" + str(tag_id)
+#                         ] * (token_end - token_start)
+
+#             label_ids = [iob_ner_map[tag] for tag in iob_tags]
+#             mapped_labels.append(label_ids)
+
+#         tokenized_inputs["labels"] = mapped_labels
+#     elif dataset_name == "n2c2-2018":
+#         labels_map = {v: k for k, v in LABELS_MAP[dataset_name].items()}
+#         iob_ner_map = IOB_NER_MAP[dataset_name]
+#         tokenized_inputs = tokenizer(
+#             dataset["text"],
+#             max_length=configs.model_configs.model_hyperparameters.max_seq_len,
+#             padding="max_length",
+#             truncation=True,
+#             return_offsets_mapping=True,
+#             return_overflowing_tokens=True,
+#             return_tensors="pt",
+#         )
+
+#         mapped_labels = []
+#         for sequence_id, sample_id in enumerate(
+#             tqdm(tokenized_inputs[f"overflow_to_sample_mapping"])
+#         ):
+#             seq_len = len(tokenized_inputs["input_ids"][sequence_id])
+#             iob_tags = ["O"] * seq_len
+
+#             offset = tokenized_inputs["offset_mapping"][sequence_id]
+#             tags = dataset[f"tags"][sample_id]
+
+#             for tag in tags:
+#                 start = tag["start"]
+#                 end = tag["end"]
+#                 tag_id = labels_map[tag["tag"]]
+
+#                 # Find the subword token indices corresponding to the character offsets
+#                 token_start = None
+#                 token_end = None
+
+#                 for idx, (offset_start, offset_end) in enumerate(offset):
+#                     if (
+#                         token_start is None
+#                         and start >= offset_start
+#                         and start < offset_end
+#                     ):
+#                         token_start = idx
+#                     if token_end is None and end > offset_start and end <= offset_end:
+#                         token_end = idx
+
+#                 if token_start is not None and token_end is not None:
+#                     if token_start == token_end:
+#                         # Entity is within a single subword token
+#                         iob_tags[token_start] = "B-" + str(tag_id)
+#                     else:
+#                         # Entity spans multiple subword tokens
+#                         iob_tags[token_start] = "B-" + str(tag_id)
+#                         iob_tags[token_start + 1 : token_end + 1] = [
+#                             "I-" + str(tag_id)
+#                         ] * (token_end - token_start)
+
+#             label_ids = [iob_ner_map[tag] for tag in iob_tags]
+#             mapped_labels.append(label_ids)
+
+#         tokenized_inputs["labels"] = mapped_labels
+
+#     return tokenized_inputs
+
+
+def process_sequence(args):
+    sequence_id, sample_id, tokenized_inputs, dataset, labels_map, iob_ner_map = args
+    seq_len = len(tokenized_inputs["input_ids"][sequence_id])
+    iob_tags = ["O"] * seq_len
+
+    offset = tokenized_inputs["offset_mapping"][sequence_id]
+    tags = dataset[f"tags"][sample_id]
+
+    for tag in tags:
+        start = tag["start"]
+        end = tag["end"]
+        tag_id = labels_map[tag["tag"]]
+
+        # Find the subword token indices corresponding to the character offsets
+        token_start = None
+        token_end = None
+
+        for idx, (offset_start, offset_end) in enumerate(offset):
+            if token_start is None and start >= offset_start and start < offset_end:
+                token_start = idx
+            if token_end is None and end > offset_start and end <= offset_end:
+                token_end = idx
+
+        if token_start is not None and token_end is not None:
+            if token_start == token_end:
+                # Entity is within a single subword token
+                iob_tags[token_start] = "B-" + str(tag_id)
+            else:
+                # Entity spans multiple subword tokens
+                iob_tags[token_start] = "B-" + str(tag_id)
+                iob_tags[token_start + 1 : token_end + 1] = ["I-" + str(tag_id)] * (
+                    token_end - token_start
+                )
+
+    label_ids = [iob_ner_map[tag] for tag in iob_tags]
+    return label_ids
+
+
 def preprocess_ner_dataset(
     dataset: DatasetDict, configs: Configs, tokenizer: PreTrainedTokenizer
 ):
     dataset_name = configs.training_configs.dataset_paths[0].split("/")[-1]
+    labels_map = {v: k for k, v in LABELS_MAP[dataset_name].items()}
+    iob_ner_map = IOB_NER_MAP[dataset_name]
 
-    if dataset_name == "n2c2-2010":
-        tokenized_inputs = tokenizer(
-            dataset["text"],
-            max_length=configs.model_configs.model_hyperparameters.max_seq_len,
-            padding="max_length",
-            truncation=True,
-            return_offsets_mapping=True,
-            return_tensors="pt",
+    # Tokenize the input text before parallel processing
+    tokenized_inputs = tokenizer(
+        dataset["text"],
+        max_length=configs.model_configs.model_hyperparameters.max_seq_len,
+        padding="max_length",
+        truncation=True,
+        return_offsets_mapping=True,
+        return_overflowing_tokens=True,
+        return_tensors="pt",
+    )
+
+    mapped_labels = []
+    num_sequences = len(tokenized_inputs[f"overflow_to_sample_mapping"])
+
+    # Create a list of arguments for each sequence
+    args_list = [
+        (
+            sequence_id,
+            tokenized_inputs[f"overflow_to_sample_mapping"][sequence_id],
+            tokenized_inputs,
+            dataset,
+            labels_map,
+            iob_ner_map,
         )
-        iob_ner_map = IOB_NER_MAP[dataset_name]
+        for sequence_id in range(num_sequences)
+    ]
 
-        mapped_labels = []
-        for tags in dataset[f"concepts"]:
-            seq_len = len(tokenized_inputs["input_ids"][0])
-            iob_tags = ["O"] * seq_len
-
-            for tag in tags:
-                start = tag["start"]
-                end = tag["end"]
-                tag_id = tag["concept"]
-
-                # Find the subword token indices corresponding to the character offsets
-                token_start = None
-                token_end = None
-
-                for idx, (offset_start, offset_end) in enumerate(
-                    tokenized_inputs["offset_mapping"][0]
-                ):
-                    if offset_start <= start and offset_end > start:
-                        token_start = idx
-                    if offset_start < end and offset_end >= end:
-                        token_end = idx
-
-                if token_start is not None and token_end is not None:
-                    if token_start == token_end:
-                        # Entity is within a single subword token
-                        iob_tags[token_start] = "B-" + str(tag_id)
-                    else:
-                        # Entity spans multiple subword tokens
-                        iob_tags[token_start] = "B-" + str(tag_id)
-                        iob_tags[token_start + 1 : token_end + 1] = [
-                            "I-" + str(tag_id)
-                        ] * (token_end - token_start)
-
-            label_ids = [iob_ner_map[tag] for tag in iob_tags]
-            mapped_labels.append(label_ids)
-
-        tokenized_inputs["labels"] = mapped_labels
-    elif dataset_name == "n2c2-2018":
-        labels_map = {v: k for k, v in LABELS_MAP[dataset_name].items()}
-        iob_ner_map = IOB_NER_MAP[dataset_name]
-        tokenized_inputs = tokenizer(
-            dataset["text"],
-            max_length=configs.model_configs.model_hyperparameters.max_seq_len,
-            padding="max_length",
-            truncation=True,
-            return_offsets_mapping=True,
-            return_overflowing_tokens=True,
-            return_tensors="pt",
+    with ProcessPoolExecutor() as executor:
+        # Use tqdm to track the progress of parallel processing
+        results = list(
+            tqdm(executor.map(process_sequence, args_list), total=num_sequences)
         )
 
-        mapped_labels = []
-        for sequence_id, sample_id in enumerate(
-            tqdm(tokenized_inputs[f"overflow_to_sample_mapping"])
-        ):
-            seq_len = len(tokenized_inputs["input_ids"][sequence_id])
-            iob_tags = ["O"] * seq_len
+    mapped_labels.extend(results)
 
-            offset = tokenized_inputs["offset_mapping"][sequence_id]
-            tags = dataset[f"tags"][sample_id]
-
-            for tag in tags:
-                start = tag["start"]
-                end = tag["end"]
-                tag_id = labels_map[tag["tag"]]
-
-                # Find the subword token indices corresponding to the character offsets
-                token_start = None
-                token_end = None
-
-                for idx, (offset_start, offset_end) in enumerate(offset):
-                    if (
-                        token_start is None
-                        and start >= offset_start
-                        and start < offset_end
-                    ):
-                        token_start = idx
-                    if token_end is None and end > offset_start and end <= offset_end:
-                        token_end = idx
-
-                if token_start is not None and token_end is not None:
-                    if token_start == token_end:
-                        # Entity is within a single subword token
-                        iob_tags[token_start] = "B-" + str(tag_id)
-                    else:
-                        # Entity spans multiple subword tokens
-                        iob_tags[token_start] = "B-" + str(tag_id)
-                        iob_tags[token_start + 1 : token_end + 1] = [
-                            "I-" + str(tag_id)
-                        ] * (token_end - token_start)
-
-            label_ids = [iob_ner_map[tag] for tag in iob_tags]
-            mapped_labels.append(label_ids)
-
-        tokenized_inputs["labels"] = mapped_labels
+    tokenized_inputs["labels"] = mapped_labels
 
     return tokenized_inputs
 
@@ -292,10 +378,21 @@ def preprocess_dataset(
             remove_columns=dataset["test"].column_names,
         )
     elif configs.model_configs.task_type == TaskType.token_cls:
-        processed_datasets = dataset.map(
-            lambda x: preprocess_ner_dataset(x, configs, tokenizer),
-            batched=True,
-            remove_columns=dataset["train"].column_names,
+        # processed_datasets = dataset.map(
+        #     lambda x: preprocess_ner_dataset(x, configs, tokenizer),
+        #     batched=True,
+        #     remove_columns=dataset["train"].column_names,
+        # )
+
+        processed_datasets = DatasetDict()
+        processed_datasets["train"] = preprocess_ner_dataset(
+            dataset["train"], configs, tokenizer
+        )
+        processed_datasets["validation"] = preprocess_ner_dataset(
+            dataset["validation"], configs, tokenizer
+        )
+        processed_datasets["test"] = preprocess_ner_dataset(
+            dataset["test"], configs, tokenizer
         )
 
     if (
