@@ -209,6 +209,7 @@ def train(
                 #     inference_mode=False,
                 #     **peft_model_configs,
                 # )
+                print(peft_model_configs)
                 print("r: ", model.peft_config["default"].r)
                 print("lora_alpha: ", model.peft_config["default"].lora_alpha)
                 print("lora_dropout: ", model.peft_config["default"].lora_dropout)
