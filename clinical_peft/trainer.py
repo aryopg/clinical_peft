@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 
 import evaluate
 import huggingface_hub
+import pandas as pd
 import torch
 from accelerate import Accelerator
 from accelerate.tracking import WandBTracker
@@ -352,7 +353,12 @@ def train(
                     step=epoch,
                 )
 
-                train_metrics = test(
+                (
+                    train_metrics,
+                    train_prediction_scores,
+                    train_predictions,
+                    train_references,
+                ) = test(
                     accelerator,
                     model,
                     train_dataloader,
@@ -365,7 +371,12 @@ def train(
                     dataset_name=dataset_name,
                 )
 
-                val_metrics = test(
+                (
+                    val_metrics,
+                    val_prediction_scores,
+                    val_predictions,
+                    val_references,
+                ) = test(
                     accelerator,
                     model,
                     val_dataloader,
@@ -398,7 +409,7 @@ def train(
                 )
 
         # Evaluate on test data
-        test_metrics = test(
+        test_metrics, test_prediction_scores, test_predictions, test_references = test(
             accelerator,
             model,
             test_dataloader,
@@ -410,6 +421,46 @@ def train(
             label_list=list(labels_map.keys()),
             dataset_name=dataset_name,
         )
+
+        train_df = pd.DataFrame(
+            {
+                "predictions": train_predictions,
+                "prediction_scores": train_prediction_scores,
+                "references": train_references,
+            }
+        )
+        val_df = pd.DataFrame(
+            {
+                "predictions": val_predictions,
+                "prediction_scores": val_prediction_scores,
+                "references": val_references,
+            }
+        )
+        test_df = pd.DataFrame(
+            {
+                "predictions": test_predictions,
+                "prediction_scores": test_prediction_scores,
+                "references": test_references,
+            }
+        )
+
+        train_prediction_filepath = os.path.join(
+            configs.training_configs.outputs_dir, "train_prediction.csv"
+        )
+        val_prediction_filepath = os.path.join(
+            configs.training_configs.outputs_dir, "val_prediction.csv"
+        )
+        test_prediction_filepath = os.path.join(
+            configs.training_configs.outputs_dir, "test_prediction.csv"
+        )
+        train_df.to_csv(train_prediction_filepath, index=False)
+        val_df.to_csv(val_prediction_filepath, index=False)
+        test_df.to_csv(test_prediction_filepath, index=False)
+
+        wandb_tracker.log_table(dataframe=train_prediction_filepath)
+        wandb_tracker.log_table(dataframe=val_prediction_filepath)
+        wandb_tracker.log_table(dataframe=test_prediction_filepath)
+
         metrics_log = " - ".join(
             [
                 f"{metric_name}: {metric_value}"
@@ -463,8 +514,13 @@ def test(
     label_list: list = [],
     dataset_name: str = "",
 ) -> dict:
+    all_predictions = []
+    all_prediction_scores = []
+    all_references = []
+
     if task == TaskType.token_cls:
         grouped_labels_list = list(LABELS_MAP[dataset_name].keys())
+
     model.eval()
     total_loss = 0
     for eval_step, batch in enumerate(tqdm(dataloader)):
@@ -494,6 +550,9 @@ def test(
                 (predictions, prediction_scores, batch["labels"])
             )
 
+            all_prediction_scores += prediction_scores.tolist()
+            all_predictions += predictions.tolist()
+            all_references += references.tolist()
             for metric_name, metric in metrics.items():
                 if metric is None:
                     continue
@@ -517,6 +576,10 @@ def test(
                         true_label += [label_list[l]]
                 true_predictions += [true_prediction]
                 true_labels += [true_label]
+
+            all_prediction_scores += [None] * len(true_predictions)
+            all_predictions += true_predictions
+            all_references += true_labels
 
             metrics["seqeval"].add_batch(
                 predictions=true_predictions, references=true_labels
@@ -558,7 +621,7 @@ def test(
                         "f1"
                     ]
 
-    return eval_metrics
+    return eval_metrics, all_prediction_scores, all_predictions, all_references
 
 
 def run(
