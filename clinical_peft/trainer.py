@@ -14,10 +14,10 @@ from datasets import DatasetDict, load_dataset
 from evaluate import EvaluationModule
 from peft import PeftConfig, PeftModel, get_peft_model
 from torch.nn import functional as F
+from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import (
-    AdamW,
     AutoModelForCausalLM,
     AutoModelForQuestionAnswering,
     AutoModelForSequenceClassification,
