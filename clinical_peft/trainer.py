@@ -204,10 +204,6 @@ def train(
                 is_trainable=configs.model_configs.pretrained_peft_fine_tune,
             )
 
-            for name, param in model.named_parameters():
-                if ".score" in name or ".classifier" in name:
-                    param.requires_grad = True
-
             if configs.model_configs.downstream_peft:
                 pretrained_peft_type = model.peft_config["default"].peft_type
                 downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type.lower()](
@@ -217,6 +213,10 @@ def train(
                 )
 
                 model.add_adapter("lora_downstream", downstream_peft_config)
+
+            for name, param in model.named_parameters():
+                if ".score" in name or ".classifier" in name:
+                    param.requires_grad = True
 
             for name, param in model.named_parameters():
                 if param.requires_grad:
