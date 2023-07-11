@@ -104,7 +104,7 @@ def train(
     dataset: DatasetDict,
     sweep_name: str = None,
 ) -> None:
-    if wandb_tracker is not None:
+    if wandb_tracker.config:
         peft_model_configs = wandb_tracker.config
     else:
         peft_model_configs = configs.model_configs.peft_hyperparameters
@@ -204,21 +204,10 @@ def train(
 
             if configs.model_configs.downstream_peft:
                 pretrained_peft_type = model.peft_config["default"].peft_type
-                # downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type.lower()](
-                #     task_type=model.peft_config["default"].task_type,
-                #     inference_mode=False,
-                #     **peft_model_configs,
-                # )
-                print(peft_model_configs)
-                print("r: ", model.peft_config["default"].r)
-                print("lora_alpha: ", model.peft_config["default"].lora_alpha)
-                print("lora_dropout: ", model.peft_config["default"].lora_dropout)
                 downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type.lower()](
                     task_type=model.peft_config["default"].task_type,
                     inference_mode=False,
-                    r=model.peft_config["default"].r,
-                    lora_alpha=model.peft_config["default"].lora_alpha,
-                    lora_dropout=model.peft_config["default"].lora_dropout,
+                    **peft_model_configs,
                 )
 
                 model.add_adapter("lora_downstream", downstream_peft_config)
