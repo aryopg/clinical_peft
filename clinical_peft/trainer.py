@@ -457,9 +457,9 @@ def train(
         val_df.to_csv(val_prediction_filepath, index=False)
         test_df.to_csv(test_prediction_filepath, index=False)
 
-        wandb_tracker.log_table(dataframe=train_prediction_filepath)
-        wandb_tracker.log_table(dataframe=val_prediction_filepath)
-        wandb_tracker.log_table(dataframe=test_prediction_filepath)
+        wandb_tracker.save(train_prediction_filepath)
+        wandb_tracker.save(val_prediction_filepath)
+        wandb_tracker.save(test_prediction_filepath)
 
         metrics_log = " - ".join(
             [
