@@ -378,22 +378,22 @@ def preprocess_dataset(
             remove_columns=dataset["test"].column_names,
         )
     elif configs.model_configs.task_type == TaskType.token_cls:
-        # processed_datasets = dataset.map(
-        #     lambda x: preprocess_ner_dataset(x, configs, tokenizer),
-        #     batched=True,
-        #     remove_columns=dataset["train"].column_names,
-        # )
+        processed_datasets = dataset.map(
+            lambda x: preprocess_ner_dataset(x, configs, tokenizer),
+            batched=True,
+            remove_columns=dataset["train"].column_names,
+        )
 
-        processed_datasets = DatasetDict()
-        processed_datasets["train"] = preprocess_ner_dataset(
-            dataset["train"], configs, tokenizer
-        )
-        processed_datasets["validation"] = preprocess_ner_dataset(
-            dataset["validation"], configs, tokenizer
-        )
-        processed_datasets["test"] = preprocess_ner_dataset(
-            dataset["test"], configs, tokenizer
-        )
+        # processed_datasets = DatasetDict()
+        # processed_datasets["train"] = preprocess_ner_dataset(
+        #     dataset["train"], configs, tokenizer
+        # )
+        # processed_datasets["validation"] = preprocess_ner_dataset(
+        #     dataset["validation"], configs, tokenizer
+        # )
+        # processed_datasets["test"] = preprocess_ner_dataset(
+        #     dataset["test"], configs, tokenizer
+        # )
 
     if (
         "test" not in dataset
