@@ -535,7 +535,7 @@ def test(
         total_loss += loss.detach().float()
 
         if task == TaskType.seq_cls:
-            prediction_scores = F.softmax(outputs.logits, dim=1)
+            prediction_scores = F.softmax(outputs.logits.to(torch.float32), dim=1)
             if multi_label:
                 probs = F.sigmoid(outputs.logits)
                 predictions = torch.where(probs >= 0.5, 1.0, 0.0)
@@ -547,17 +547,6 @@ def test(
             predictions, prediction_scores, references = accelerator.gather(
                 (predictions, prediction_scores, batch["labels"])
             )
-
-            print(predictions)
-            print(prediction_scores)
-            print(prediction_scores.to(torch.float32))
-            print(references)
-            print(multi_class)
-            print(predictions.size())
-            print(prediction_scores.size())
-            print(prediction_scores.to(torch.float32).size())
-            print(references.size())
-
             all_prediction_scores += prediction_scores.tolist()
             all_predictions += predictions.tolist()
             all_references += references.tolist()
@@ -566,7 +555,7 @@ def test(
                     continue
                 if metric_name == "roc_auc":
                     metric.add_batch(
-                        prediction_scores=prediction_scores.to(torch.float32),
+                        prediction_scores=prediction_scores,
                         references=references,
                     )
                 elif metric_name.startswith("f1_"):
