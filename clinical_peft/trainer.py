@@ -550,10 +550,12 @@ def test(
 
             print(predictions)
             print(prediction_scores)
+            print(prediction_scores.to(torch.float32))
             print(references)
             print(multi_class)
             print(predictions.size())
             print(prediction_scores.size())
+            print(prediction_scores.to(torch.float32).size())
             print(references.size())
 
             all_prediction_scores += prediction_scores.tolist()
