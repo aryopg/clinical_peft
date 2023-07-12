@@ -218,10 +218,6 @@ def train(
                 if ".score" in name or ".classifier" in name:
                     param.requires_grad = True
 
-            for name, param in model.named_parameters():
-                if param.requires_grad:
-                    print(name)
-
             model.print_trainable_parameters()
         else:
             if configs.model_configs.peft_type:
