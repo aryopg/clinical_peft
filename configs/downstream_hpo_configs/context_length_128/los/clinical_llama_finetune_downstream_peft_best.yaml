@@ -10,11 +10,10 @@ model_configs:
     lora_alpha: 4
     lora_dropout: 0.0
   model_hyperparameters:
-    bf16: True
     learning_rate: 0.00005
     warmup_steps_ratio: 0.06
     max_seq_len: 128
-    gradient_accumulation_steps: 10
+    gradient_accumulation_steps: 2
 training_configs:
   dataset_paths:
     - aryopg/trec-los
