@@ -548,6 +548,14 @@ def test(
                 (predictions, prediction_scores, batch["labels"])
             )
 
+            print(predictions)
+            print(prediction_scores)
+            print(references)
+            print(multi_class)
+            print(predictions.size())
+            print(prediction_scores.size())
+            print(references.size())
+
             all_prediction_scores += prediction_scores.tolist()
             all_predictions += predictions.tolist()
             all_references += references.tolist()
