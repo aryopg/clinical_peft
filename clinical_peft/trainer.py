@@ -146,7 +146,7 @@ def train(
                 torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
             )
         elif configs.model_configs.task_type == TaskType.question_ans:
-            if "llama" in configs.model_configs.model_name_or_path:
+            if "llama" in configs.model_configs.model_name_or_path.lower():
                 model = LlamaForQuestionAnswering.from_pretrained(
                     configs.model_configs.model_name_or_path,
                     return_dict=True,
@@ -160,7 +160,7 @@ def train(
                 )
         elif configs.model_configs.task_type == TaskType.token_cls:
             labels_map = IOB_NER_MAP[dataset_name]
-            if "llama" in configs.model_configs.model_name_or_path:
+            if "llama" in configs.model_configs.model_name_or_path.lower():
                 model = LlamaForTokenClassification.from_pretrained(
                     configs.model_configs.model_name_or_path,
                     num_labels=len(labels_map),
