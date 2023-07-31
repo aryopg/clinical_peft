@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 
 import evaluate
 import huggingface_hub
+import numpy as np
 import pandas as pd
 import torch
 from accelerate import Accelerator
@@ -353,6 +354,7 @@ def train(
 
                 (
                     train_metrics,
+                    train_logits,
                     train_prediction_scores,
                     train_predictions,
                     train_references,
@@ -371,6 +373,7 @@ def train(
 
                 (
                     val_metrics,
+                    val_logits,
                     val_prediction_scores,
                     val_predictions,
                     val_references,
@@ -407,7 +410,13 @@ def train(
                 )
 
         # Evaluate on test data
-        test_metrics, test_prediction_scores, test_predictions, test_references = test(
+        (
+            test_metrics,
+            test_logits,
+            test_prediction_scores,
+            test_predictions,
+            test_references,
+        ) = test(
             accelerator,
             model,
             test_dataloader,
@@ -451,13 +460,32 @@ def train(
         test_prediction_filepath = os.path.join(
             configs.training_configs.outputs_dir, "test_prediction.csv"
         )
+
         train_df.to_csv(train_prediction_filepath, index=False)
         val_df.to_csv(val_prediction_filepath, index=False)
         test_df.to_csv(test_prediction_filepath, index=False)
 
+        train_logits_filepath = os.path.join(
+            configs.training_configs.outputs_dir, "train_logits.npy"
+        )
+        val_logits_filepath = os.path.join(
+            configs.training_configs.outputs_dir, "val_logits.npy"
+        )
+        test_logits_filepath = os.path.join(
+            configs.training_configs.outputs_dir, "test_logits.npy"
+        )
+
+        np.save(train_logits_filepath, train_logits)
+        np.save(val_logits_filepath, val_logits)
+        np.save(test_logits_filepath, test_logits)
+
         wandb_tracker.save(train_prediction_filepath)
         wandb_tracker.save(val_prediction_filepath)
         wandb_tracker.save(test_prediction_filepath)
+
+        wandb_tracker.save(train_logits_filepath)
+        wandb_tracker.save(val_logits_filepath)
+        wandb_tracker.save(test_logits_filepath)
 
         metrics_log = " - ".join(
             [
@@ -512,6 +540,7 @@ def test(
     label_list: list = [],
     dataset_name: str = "",
 ) -> dict:
+    all_logits = []
     all_predictions = []
     all_prediction_scores = []
     all_references = []
@@ -535,18 +564,20 @@ def test(
         total_loss += loss.detach().float()
 
         if task == TaskType.seq_cls:
-            prediction_scores = F.softmax(outputs.logits.to(torch.float32), dim=1)
+            output_logits = outputs.logits.to(torch.float32)
+            prediction_scores = F.softmax(output_logits, dim=1)
             if multi_label:
-                probs = F.sigmoid(outputs.logits)
+                probs = F.sigmoid(output_logits)
                 predictions = torch.where(probs >= 0.5, 1.0, 0.0)
             else:
-                predictions = outputs.logits.argmax(dim=-1)
+                predictions = output_logits.argmax(dim=-1)
             if not multi_class and not multi_label:
                 prediction_scores = prediction_scores[:, -1]
             references = batch["labels"]
             predictions, prediction_scores, references = accelerator.gather(
                 (predictions, prediction_scores, batch["labels"])
             )
+            all_logits += [output_logits]
             all_prediction_scores += prediction_scores.tolist()
             all_predictions += predictions.tolist()
             all_references += references.tolist()
@@ -561,7 +592,8 @@ def test(
                 elif metric_name.startswith("f1_"):
                     metric.add_batch(predictions=predictions, references=references)
         elif task == TaskType.token_cls:
-            predictions = outputs.logits.argmax(dim=-1)
+            output_logits = outputs.logits.to(torch.float32)
+            predictions = output_logits.argmax(dim=-1)
             predictions, references = accelerator.gather((predictions, batch["labels"]))
 
             true_predictions, true_labels = [], []
@@ -574,6 +606,7 @@ def test(
                 true_predictions += [true_prediction]
                 true_labels += [true_label]
 
+            all_logits += [output_logits]
             all_prediction_scores += [None] * len(true_predictions)
             all_predictions += true_predictions
             all_references += true_labels
@@ -618,7 +651,14 @@ def test(
                         "f1"
                     ]
 
-    return eval_metrics, all_prediction_scores, all_predictions, all_references
+    all_logits = torch.cat(all_logits).numpy()
+    return (
+        eval_metrics,
+        all_logits,
+        all_prediction_scores,
+        all_predictions,
+        all_references,
+    )
 
 
 def run(
