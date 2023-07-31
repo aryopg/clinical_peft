@@ -651,7 +651,7 @@ def test(
                         "f1"
                     ]
 
-    all_logits = torch.cat(all_logits).numpy()
+    all_logits = torch.cat(all_logits).cpu().numpy()
     return (
         eval_metrics,
         all_logits,
