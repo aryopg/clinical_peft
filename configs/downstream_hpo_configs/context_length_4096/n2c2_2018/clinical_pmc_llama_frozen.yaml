@@ -11,7 +11,7 @@ model_configs:
     learning_rate: 0.0001
     warmup_steps_ratio: 0.06
     max_seq_len: 4096
-    gradient_accumulation_steps: 10
+    gradient_accumulation_steps: 32
 training_configs:
   dataset_paths:
     - aryopg/n2c2-2018

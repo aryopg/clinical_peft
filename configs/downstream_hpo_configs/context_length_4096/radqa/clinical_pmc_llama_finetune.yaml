@@ -11,7 +11,7 @@ model_configs:
     learning_rate: 0.0001
     warmup_steps_ratio: 0.06
     max_seq_len: 4096
-    gradient_accumulation_steps: 10
+    gradient_accumulation_steps: 32
 training_configs:
   dataset_paths:
     - aryopg/radqa
@@ -20,7 +20,7 @@ training_configs:
   device: 0
   num_process: 8
   test_size: 0.1
-  epochs: 50
+  epochs: 10
   steps: 1000000
   batch_size: 8
   log_steps: 1000000
