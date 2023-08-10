@@ -107,10 +107,10 @@ def train(
 ) -> None:
     common_utils.setup_random_seed(configs.training_configs.random_seed)
 
-    if len(wandb_tracker.config.keys()) > 0:
-        peft_model_configs = wandb_tracker.config
-    else:
-        peft_model_configs = configs.model_configs.peft_hyperparameters
+    peft_model_configs = configs.model_configs.peft_hyperparameters
+    if wandb_tracker is not None:
+        if len(wandb_tracker.config.keys()) > 0:
+            peft_model_configs = wandb_tracker.config
 
     accelerator.print("Loading model:")
     accelerator.print(configs.model_configs.dict())
