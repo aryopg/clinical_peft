@@ -34,6 +34,7 @@ def tokenize(
     processed_datasets = dataset.map(
         lambda x: tokenizer(
             x[text_column],
+            padding="max_length",
             max_length=configs.model_configs.model_hyperparameters.max_seq_len,
             truncation=True,
         ),
