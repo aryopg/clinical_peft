@@ -104,6 +104,7 @@ def train(
     tokenizer: PreTrainedTokenizer,
     dataset: DatasetDict,
     sweep_name: str = None,
+    outputs_dir: str = None,
 ) -> None:
     common_utils.setup_random_seed(configs.training_configs.random_seed)
 
@@ -288,6 +289,7 @@ def train(
         if torch.cuda.device_count() > 1:
             accelerator.sync_gradients = False
 
+        prev_dev_loss = 10000
         for epoch in range(num_epochs):
             accelerator.print(f" >>> Epoch {epoch + 1} / {num_epochs}")
             model.train()
@@ -308,10 +310,6 @@ def train(
                                 "overflow_to_sample_mapping",
                             ]
                         }
-
-                        for k, v in batch.items():
-                            print(k)
-                            print(v.size())
 
                         if class_weights is not None:
                             outputs = model(**batch)
@@ -413,7 +411,21 @@ def train(
                     step=epoch,
                 )
 
+                if val_metrics["val_loss"] < prev_dev_loss:
+                    prev_dev_loss = val_metrics["val_loss"]
+                    torch.save(
+                        model.state_dict(),
+                        os.path.join(outputs_dir, "checkpoint", "best_model.pt"),
+                    )
+
+                accelerator.wait_for_everyone()
+
         # Evaluate on test data
+        model.load_state_dict(
+            torch.load(os.path.join(outputs_dir, "checkpoint", "best_model.pt"))
+        )
+        accelerator.wait_for_everyone()
+
         (
             test_metrics,
             test_logits,
@@ -588,7 +600,7 @@ def test(
             for metric_name, metric in metrics.items():
                 if metric is None:
                     continue
-                if metric_name == "roc_auc":
+                if metric_name in ["roc_auc", "auprc"]:
                     metric.add_batch(
                         prediction_scores=prediction_scores,
                         references=references,
@@ -635,6 +647,10 @@ def test(
                 eval_metrics[f"{split}_{metric_name}"] = metric.compute(
                     multi_class=multi_class
                 )["roc_auc"]
+            if metric_name == "auprc":
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute(
+                    multi_class=multi_class
+                )["auprc"]
             elif metric_name == "f1_micro":
                 eval_metrics[f"{split}_{metric_name}"] = metric.compute(
                     average="micro"
@@ -737,7 +753,7 @@ def run(
         tokenizer,
         dataset,
         sweep_name,
-        # outputs_dir,
+        outputs_dir,
     )
 
     # cleanup and sleep just to be sure the cuda memory is freed
