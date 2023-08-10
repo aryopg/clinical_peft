@@ -648,9 +648,7 @@ def test(
                     multi_class=multi_class
                 )["roc_auc"]
             if metric_name == "auprc":
-                eval_metrics[f"{split}_{metric_name}"] = metric.compute(
-                    multi_class=multi_class
-                )["auprc"]
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute()["auprc"]
             elif metric_name == "f1_micro":
                 eval_metrics[f"{split}_{metric_name}"] = metric.compute(
                     average="micro"
