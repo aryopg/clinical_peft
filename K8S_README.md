@@ -30,9 +30,11 @@ su YOUR_NAME
 You can start installing packages
 
 ```
-conda create -n clinical_peft python=3.10
+conda create -n clinical_peft python=3.10 -y
 conda activate clinical_peft
 conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia -y
-conda install transformers datasets huggingface_hub -c huggingface -y
+conda install transformers datasets huggingface_hub evaluate -c huggingface -y
 conda install sentencepiece pydantic python-dotenv black isort tqdm wandb pandas matplotlib accelerate scikit-learn -c conda-forge -y
+pip install -e submodules/peft
+pip install -U tokenizers
 ```
