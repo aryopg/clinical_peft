@@ -517,8 +517,9 @@ def train(
         hf_username = os.getenv("HF_USERNAME")
         hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
         hyperparams = []
-        for key, value in peft_model_configs.items():
-            hyperparams += [f"{key}_{value}"]
+        if peft_model_configs:
+            for key, value in peft_model_configs.items():
+                hyperparams += [f"{key}_{value}"]
         hyperparams = "__".join(hyperparams)
 
         hf_repo_name = f"{hf_username}/{sweep_name}__{hyperparams}"
