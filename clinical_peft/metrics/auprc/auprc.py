@@ -155,7 +155,6 @@ class AUPRC(evaluate.Metric):
         sample_weight=None,
     ):
         if self.config_name == "multiclass":
-            print(references)
             labels_onehot = np.zeros((len(references), len(prediction_scores[0])))
             for i, label in enumerate(references):
                 labels_onehot[i, label] = 1
