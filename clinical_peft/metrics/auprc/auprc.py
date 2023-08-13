@@ -1,5 +1,6 @@
 import datasets
 import evaluate
+import numpy as np
 from sklearn.metrics import average_precision_score
 
 _DESCRIPTION = """
@@ -153,6 +154,12 @@ class AUPRC(evaluate.Metric):
         average="macro",
         sample_weight=None,
     ):
+        if self.config_name == "multiclass":
+            print(references)
+            labels_onehot = np.zeros((len(references), prediction_scores.shape[-1]))
+            for i, label in enumerate(references):
+                labels_onehot[i, label] = 1
+            references = labels_onehot
         return {
             "auprc": average_precision_score(
                 references,
