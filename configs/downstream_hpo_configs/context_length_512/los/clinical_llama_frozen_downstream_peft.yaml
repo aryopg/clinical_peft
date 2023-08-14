@@ -18,11 +18,10 @@ model_configs:
       lora_dropout: 
         values: [0.0, 0.1, 0.2]
   model_hyperparameters:
-    bf16: True
     learning_rate: 0.00005
     warmup_steps_ratio: 0.06
     max_seq_len: 512
-    gradient_accumulation_steps: 10
+    gradient_accumulation_steps: 32
 training_configs:
   dataset_paths:
     - aryopg/trec-los
@@ -32,7 +31,7 @@ training_configs:
   test_size: 0.1
   epochs: 10
   steps: 1000000
-  batch_size: 8
+  batch_size: 1
   log_steps: 1000000
   eval_steps: 1000000  # Only evaluate at the end
   checkpoint_steps: 1000000  # Only checkpoint at the end

@@ -15,7 +15,6 @@ model_configs:
       lora_dropout: 
         values: [0.0, 0.1, 0.2]
   model_hyperparameters:
-    bf16: True
     learning_rate: 0.00005
     warmup_steps_ratio: 0.06
     max_seq_len: 512
