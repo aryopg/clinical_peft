@@ -443,7 +443,7 @@ def train(
             multi_label=configs.training_configs.multilabel,
             multi_class=multi_class,
             split="test",
-            label_list=list(labels_map.keys()),
+            label_list=list(labels_map.keys()) if labels_map else [],
             dataset_name=dataset_name,
         )
 
