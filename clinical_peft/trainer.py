@@ -420,11 +420,13 @@ def train(
 
                 accelerator.wait_for_everyone()
 
-        # Evaluate on test data
-        model.load_state_dict(
-            torch.load(os.path.join(outputs_dir, "checkpoint", "best_model.pt"))
-        )
-        accelerator.wait_for_everyone()
+        # For classification tasks, log metrics at the end of an epoch
+        if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
+            # Evaluate on test data
+            model.load_state_dict(
+                torch.load(os.path.join(outputs_dir, "checkpoint", "best_model.pt"))
+            )
+            accelerator.wait_for_everyone()
 
         (
             test_metrics,
@@ -445,63 +447,65 @@ def train(
             dataset_name=dataset_name,
         )
 
-        train_df = pd.DataFrame(
-            {
-                "predictions": train_predictions,
-                "prediction_scores": train_prediction_scores,
-                "references": train_references,
-            }
-        )
-        val_df = pd.DataFrame(
-            {
-                "predictions": val_predictions,
-                "prediction_scores": val_prediction_scores,
-                "references": val_references,
-            }
-        )
-        test_df = pd.DataFrame(
-            {
-                "predictions": test_predictions,
-                "prediction_scores": test_prediction_scores,
-                "references": test_references,
-            }
-        )
+        # For classification tasks, log predictions at the end of training
+        if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
+            train_df = pd.DataFrame(
+                {
+                    "predictions": train_predictions,
+                    "prediction_scores": train_prediction_scores,
+                    "references": train_references,
+                }
+            )
+            val_df = pd.DataFrame(
+                {
+                    "predictions": val_predictions,
+                    "prediction_scores": val_prediction_scores,
+                    "references": val_references,
+                }
+            )
+            test_df = pd.DataFrame(
+                {
+                    "predictions": test_predictions,
+                    "prediction_scores": test_prediction_scores,
+                    "references": test_references,
+                }
+            )
 
-        train_prediction_filepath = os.path.join(
-            configs.training_configs.outputs_dir, "train_prediction.csv"
-        )
-        val_prediction_filepath = os.path.join(
-            configs.training_configs.outputs_dir, "val_prediction.csv"
-        )
-        test_prediction_filepath = os.path.join(
-            configs.training_configs.outputs_dir, "test_prediction.csv"
-        )
+            train_prediction_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "train_prediction.csv"
+            )
+            val_prediction_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "val_prediction.csv"
+            )
+            test_prediction_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "test_prediction.csv"
+            )
 
-        train_df.to_csv(train_prediction_filepath, index=False)
-        val_df.to_csv(val_prediction_filepath, index=False)
-        test_df.to_csv(test_prediction_filepath, index=False)
+            train_df.to_csv(train_prediction_filepath, index=False)
+            val_df.to_csv(val_prediction_filepath, index=False)
+            test_df.to_csv(test_prediction_filepath, index=False)
 
-        train_logits_filepath = os.path.join(
-            configs.training_configs.outputs_dir, "train_logits.npy"
-        )
-        val_logits_filepath = os.path.join(
-            configs.training_configs.outputs_dir, "val_logits.npy"
-        )
-        test_logits_filepath = os.path.join(
-            configs.training_configs.outputs_dir, "test_logits.npy"
-        )
+            train_logits_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "train_logits.npy"
+            )
+            val_logits_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "val_logits.npy"
+            )
+            test_logits_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "test_logits.npy"
+            )
 
-        np.save(train_logits_filepath, train_logits)
-        np.save(val_logits_filepath, val_logits)
-        np.save(test_logits_filepath, test_logits)
+            np.save(train_logits_filepath, train_logits)
+            np.save(val_logits_filepath, val_logits)
+            np.save(test_logits_filepath, test_logits)
 
-        wandb_tracker.save(train_prediction_filepath)
-        wandb_tracker.save(val_prediction_filepath)
-        wandb_tracker.save(test_prediction_filepath)
+            wandb_tracker.save(train_prediction_filepath)
+            wandb_tracker.save(val_prediction_filepath)
+            wandb_tracker.save(test_prediction_filepath)
 
-        wandb_tracker.save(train_logits_filepath)
-        wandb_tracker.save(val_logits_filepath)
-        wandb_tracker.save(test_logits_filepath)
+            wandb_tracker.save(train_logits_filepath)
+            wandb_tracker.save(val_logits_filepath)
+            wandb_tracker.save(test_logits_filepath)
 
         metrics_log = " - ".join(
             [
