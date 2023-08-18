@@ -518,26 +518,26 @@ def train(
 
         accelerator.wait_for_everyone()
 
-        hf_username = os.getenv("HF_USERNAME")
-        hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
-        hyperparams = []
-        if peft_model_configs:
-            for key, value in peft_model_configs.items():
-                hyperparams += [f"{key}_{value}"]
-        hyperparams = "__".join(hyperparams)
+        if accelerator.is_main_process:
+            hf_username = os.getenv("HF_USERNAME")
+            hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
+            hyperparams = []
+            if peft_model_configs:
+                for key, value in peft_model_configs.items():
+                    hyperparams += [f"{key}_{value}"]
+            hyperparams = "__".join(hyperparams)
 
-        hf_repo_name = f"{hf_username}/{sweep_name}__{hyperparams}"
+            hf_repo_name = f"{hf_username}/{sweep_name}__{hyperparams}"
 
-        huggingface_hub.create_repo(
-            hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
-        )
-        model.push_to_hub(
-            hf_repo_name,
-            state_dict=accelerator.get_state_dict(model),
-            private=True,
-            use_auth_token=hf_upload_token,
-        )
-
+            huggingface_hub.create_repo(
+                hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
+            )
+            model.push_to_hub(
+                hf_repo_name,
+                state_dict=accelerator.get_state_dict(model),
+                private=True,
+                use_auth_token=hf_upload_token,
+            )
         accelerator.wait_for_everyone()
 
         # cleanup and sleep just to be sure the cuda memory is freed
