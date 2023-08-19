@@ -347,7 +347,6 @@ def train(
 
                     if (train_step + 1) >= num_training_steps:
                         break
-                break
             # For classification tasks, log metrics at the end of an epoch
             if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
                 accelerator.log(
@@ -638,7 +637,6 @@ def test(
             metrics["seqeval"].add_batch(
                 predictions=true_predictions, references=true_labels
             )
-        break
 
     eval_loss = total_loss / len(dataloader)
 
