@@ -529,6 +529,8 @@ def train(
 
             hf_repo_name = f"{hf_username}/{sweep_name}__{hyperparams}"
 
+            accelerator.save_state(os.path.join(outputs_dir, "checkpoint"))
+
             huggingface_hub.create_repo(
                 hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
             )
