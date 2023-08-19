@@ -347,6 +347,7 @@ def train(
 
                     if (train_step + 1) >= num_training_steps:
                         break
+                break
             # For classification tasks, log metrics at the end of an epoch
             if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
                 accelerator.log(
@@ -518,6 +519,8 @@ def train(
 
         accelerator.wait_for_everyone()
 
+        accelerator.save_state(os.path.join(outputs_dir, "checkpoint"))
+
         if accelerator.is_main_process:
             hf_username = os.getenv("HF_USERNAME")
             hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
@@ -528,8 +531,6 @@ def train(
             hyperparams = "__".join(hyperparams)
 
             hf_repo_name = f"{hf_username}/{sweep_name}__{hyperparams}"
-
-            accelerator.save_state(os.path.join(outputs_dir, "checkpoint"))
 
             huggingface_hub.create_repo(
                 hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
@@ -637,6 +638,7 @@ def test(
             metrics["seqeval"].add_batch(
                 predictions=true_predictions, references=true_labels
             )
+        break
 
     eval_loss = total_loss / len(dataloader)
 
