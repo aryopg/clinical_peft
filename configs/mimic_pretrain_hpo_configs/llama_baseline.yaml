@@ -20,6 +20,6 @@ training_configs:
   batch_size: 1
   log_steps: 100
   eval_steps: 1000000  # Only evaluate at the end
-  checkpoint_steps: 50000
+  checkpoint_steps: 10000
   max_sweep_count: 20
   outputs_dir: "outputs"
