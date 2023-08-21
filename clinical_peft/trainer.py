@@ -347,6 +347,8 @@ def train(
 
                     if (train_step + 1) >= num_training_steps:
                         break
+                if (train_step + 1) % configs.training_configs.checkpoint_steps == 0:
+                    accelerator.save_state(os.path.join(outputs_dir, "checkpoint"))
             # For classification tasks, log metrics at the end of an epoch
             if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
                 accelerator.log(
