@@ -39,7 +39,9 @@ def main() -> None:
     dataset = []
     for filepath in raw_filepaths:
         dataset_df = pd.read_csv(filepath, compression="gzip")
-        dataset += dataset_df["text"].apply(lambda x: clean_clinical_note(x)).values
+        dataset += (
+            dataset_df["text"].apply(lambda x: clean_clinical_note(x)).values.tolist()
+        )
 
     # Write the combined clinical notes to the output_filepath
     with gzip.open(output_filepath, "wt") as file:
