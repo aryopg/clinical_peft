@@ -1,20 +1,16 @@
 model_configs:
   peft_type: null
-  task_type: "token_cls"
-  model_name_or_path: "chaoyi-wu/PMC_LLAMA_7B"
-  pretrained_peft_name_or_path: "aryopg/mimic-iv__PMC_LLAMA_7B__lora__lora_alpha_4__lora_dropout_0.2__r_4"
-  pretrained_peft_fine_tune: true
-  downstream_peft: false
+  task_type: "seq_cls"
+  model_name_or_path: "aryopg/mimic_iv__llama_baseline_checkpoint_last"
   peft_hyperparameters: null
   model_hyperparameters:
-    bf16: True
-    learning_rate: 0.0001
+    learning_rate: 0.00005
     warmup_steps_ratio: 0.06
-    max_seq_len: 4096
-    gradient_accumulation_steps: 32
+    max_seq_len: 128
+    gradient_accumulation_steps: 10
 training_configs:
   dataset_paths:
-    - aryopg/n2c2-2018
+    - aryopg/core-procedure
   multilabel: true
   random_seed: 1234
   device: 0
