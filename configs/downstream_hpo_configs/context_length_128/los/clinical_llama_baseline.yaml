@@ -1,7 +1,7 @@
 model_configs:
   peft_type: null
   task_type: "seq_cls"
-  model_name_or_path: "aryopg/mimic_iv__llama_baseline_checkpoint_last"
+  model_name_or_path: "aryopg/mimic_iv__llama_baseline_checkpoint_128"
   peft_hyperparameters: null
   model_hyperparameters:
     learning_rate: 0.00005
