@@ -58,6 +58,9 @@ def set_metrics(labels_map: dict, multilabel: bool):
         roc_auc_metrics = evaluate.load(
             "clinical_peft/metrics/roc_auc_skip_uniform", "multilabel"
         )
+        auprc_metrics = evaluate.load(
+            "clinical_peft/metrics/auprc_skip_uniform", "multilabel"
+        )
 
     performance_metrics = {
         "auprc": auprc_metrics,
