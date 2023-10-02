@@ -1,6 +1,6 @@
 from kubejobs.jobs import KubernetesJob
 
-base_args = "git clone 'https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git' --branch longer_sequence && cd clinical_peft && "
+base_args = "git clone https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git --branch longer_sequence && cd clinical_peft && "
 
 # List of commands to run as separate Kubernetes Jobs
 configs = [
