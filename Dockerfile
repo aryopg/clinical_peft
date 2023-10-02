@@ -10,6 +10,22 @@ RUN apt update -y --fix-missing
 RUN apt install -y byobu git python3 python-is-python3 pip bc htop parallel nano wget unzip python3.10-venv sox ffmpeg libcairo2 libcairo2-dev libgirepository1.0-dev libdbus-1-dev
 
 # Check if an NVIDIA GPU is available
-RUN nvidia-smi && \
-    pip install -r /tmp/requirements.txt || \
-    pip install -r /tmp/requirements_cpu.txt
+RUN wget -c https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+RUN chmod +x Miniconda3-latest-Linux-x86_64.sh
+RUN ./Miniconda3-latest-Linux-x86_64.sh -b -p /home/miniconda3
+RUN rm ./Miniconda3-latest-Linux-x86_64.sh
+RUN ln -s /home/miniconda3/bin/conda /usr/bin/conda
+
+RUN conda update -n base -c defaults conda -y
+RUN conda init
+RUN conda install python=3.10 -y
+RUN conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia -y
+RUN conda install transformers datasets huggingface_hub evaluate -c huggingface -y
+RUN conda install sentencepiece pydantic python-dotenv black isort tqdm wandb pandas matplotlib accelerate scikit-learn pynvml -c conda-forge -ydote
+RUN rm -rf /home/miniconda3/pkgs/*
+RUN PYTHONDONTWRITEBYTECODE=1
+
+RUN pip install deepspeed
+RUN pip install peft==0.4.0
+RUN pip install -U tokenizers==0.13.3
+RUN pip install -U pydantic==1.10.12
