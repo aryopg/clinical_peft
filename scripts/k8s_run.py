@@ -20,28 +20,28 @@ run_names = [
 commands = [base_command + config for config in configs]
 
 secret_env_vars = {
-    "GIT_TOKEN": {"secret_name": "aryo-git-token", "key": "aryo-git-token"},
+    "GIT_TOKEN": {"secret_name": "aryo-secrets", "key": "aryo-git-token"},
     "WANDB_API_KEY": {
-        "secret_name": "aryo-wandb-api-key",
+        "secret_name": "aryo-secrets",
         "key": "aryo-wandb-api-key",
     },
     "WANDB_PROJECT_NAME": {
-        "secret_name": "aryo-wandb-project-name",
+        "secret_name": "aryo-secrets",
         "key": "aryo-wandb-project-name",
     },
     "WANDB_ENTITY": {
-        "secret_name": "aryo-wandb-entity",
+        "secret_name": "aryo-secrets",
         "key": "aryo-wandb-entity",
     },
     "HF_DOWNLOAD_TOKEN": {
-        "secret_name": "aryo-hf-download-token",
+        "secret_name": "aryo-secrets",
         "key": "aryo-hf-download-token",
     },
     "HF_UPLOAD_TOKEN": {
-        "secret_name": "aryo-hf-upload-token",
+        "secret_name": "aryo-secrets",
         "key": "aryo-hf-upload-token",
     },
-    "HF_USERNAME": {"secret_name": "aryo-hf-username", "key": "aryo-hf-username"},
+    "HF_USERNAME": {"secret_name": "aryo-secrets", "key": "aryo-hf-username"},
 }
 
 for run_name, command in zip(run_names, commands):
