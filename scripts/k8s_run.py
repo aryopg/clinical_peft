@@ -1,6 +1,6 @@
 from kubejobs.jobs import KubernetesJob
 
-base_command = "git clone 'https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git' --branch longer_sequence && cd clinical_peft && accelerate launch scripts/train.py --config_filepath "
+base_args = "git clone 'https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git' --branch longer_sequence && cd clinical_peft && "
 
 # List of commands to run as separate Kubernetes Jobs
 configs = [
@@ -17,6 +17,7 @@ run_names = [
     "-".join(config.split("/")[-2:]).replace(".yaml", "").replace("_", "-")
     for config in configs
 ]
+base_command = "accelerate launch scripts/train.py --config_filepath "
 commands = [base_command + config for config in configs]
 
 secret_env_vars = {
@@ -53,7 +54,8 @@ for run_name, command in zip(run_names, commands):
         gpu_limit=1,
         gpu_product="NVIDIA-A100-SXM4-80GB",
         backoff_limit=4,
-        command=["/bin/bash", "-c", command],
+        command=["/bin/bash", "-c", "--"],
+        args=base_args + command,
         secret_env_vars=secret_env_vars,
     )
 
