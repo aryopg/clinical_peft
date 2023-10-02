@@ -1,5 +1,7 @@
 from kubejobs import create_jobs_for_experiments
 
+base_command = "git clone 'https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git' --branch longer_sequence && cd clinical_peft && "
+
 # List of commands to run as separate Kubernetes Jobs
 commands = [
     "accelerate launch scripts/train.py --config_filepath configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_lora.yaml",
@@ -10,6 +12,8 @@ commands = [
     "accelerate launch scripts/train.py --config_filepath configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_lora.yaml",
     "accelerate launch scripts/train.py --config_filepath configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_lora.yaml",
 ]
+
+commands = [base_command + command for command in commands]
 
 name = "clinical-llama"
 experiment = "dapt-mimic-iv"
@@ -23,4 +27,7 @@ create_jobs_for_experiments(
     backoff_limit=4,  # Maximum number of retries before marking job as failed
     name=name,
     experiment=experiment,
+    secret_env_vars={
+        "GIT_TOKEN": {"secret_name": "aryo-secret", "key": "aryo-git-token"}
+    },
 )
