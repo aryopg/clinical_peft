@@ -1,4 +1,4 @@
-from kubejobs import create_jobs_for_experiments
+from kubejobs.jobs import create_jobs_for_experiments
 
 base_command = "git clone 'https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git' --branch longer_sequence && cd clinical_peft && "
 
