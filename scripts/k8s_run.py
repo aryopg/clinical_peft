@@ -47,6 +47,7 @@ secret_env_vars = {
 
 for run_name, command in zip(run_names, commands):
     # Create a Kubernetes Job with a name, container image, and command
+    print(f"Creating job for: {base_args + command}")
     job = KubernetesJob(
         name=run_name,
         image="aryopg/clinical-peft:v1",
@@ -55,7 +56,7 @@ for run_name, command in zip(run_names, commands):
         gpu_product="NVIDIA-A100-SXM4-80GB",
         backoff_limit=4,
         command=["/bin/bash", "-c", "--"],
-        args=base_args + command,
+        args=[base_args + command],
         secret_env_vars=secret_env_vars,
     )
 
