@@ -28,12 +28,27 @@ create_jobs_for_experiments(
     name=name,
     experiment=experiment,
     secret_env_vars={
-        "GIT_TOKEN": {"secret_name": "aryo-git-token", "key": "aryo-git-token"}
-        "WANDB_API_KEY":  {"secret_name": "aryo-wandb-api-key", "key": "aryo-wandb-api-key"}
-        "WANDB_PROJECT_NAME":  {"secret_name": "aryo-wandb-project-name", "key": "aryo-wandb-project-name"}
-        "WANDB_ENTITY":  {"secret_name": "aryo-wandb-entity", "key": "aryo-wandb-entity"}
-        "HF_DOWNLOAD_TOKEN":  {"secret_name": "aryo-hf-download-token", "key": "aryo-hf-download-token"}
-        "HF_UPLOAD_TOKEN":  {"secret_name": "aryo-hf-upload-token", "key": "aryo-hf-upload-token"}
-        "HF_USERNAME":  {"secret_name": "aryo-hf-username", "key": "aryo-hf-username"}
+        "GIT_TOKEN": {"secret_name": "aryo-git-token", "key": "aryo-git-token"},
+        "WANDB_API_KEY": {
+            "secret_name": "aryo-wandb-api-key",
+            "key": "aryo-wandb-api-key",
+        },
+        "WANDB_PROJECT_NAME": {
+            "secret_name": "aryo-wandb-project-name",
+            "key": "aryo-wandb-project-name",
+        },
+        "WANDB_ENTITY": {
+            "secret_name": "aryo-wandb-entity",
+            "key": "aryo-wandb-entity",
+        },
+        "HF_DOWNLOAD_TOKEN": {
+            "secret_name": "aryo-hf-download-token",
+            "key": "aryo-hf-download-token",
+        },
+        "HF_UPLOAD_TOKEN": {
+            "secret_name": "aryo-hf-upload-token",
+            "key": "aryo-hf-upload-token",
+        },
+        "HF_USERNAME": {"secret_name": "aryo-hf-username", "key": "aryo-hf-username"},
     },
 )
