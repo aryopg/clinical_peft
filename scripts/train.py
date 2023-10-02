@@ -76,9 +76,7 @@ def main() -> None:
         ):
             # Start sweep
             sweep_configuration = configs.model_configs.peft_hyperparameters
-            sweep_name = (
-                f"{dataset_name}__{model_name}__{configs.model_configs.peft_type}"
-            )
+            sweep_name = f"{dataset_name}__{model_name}__{configs.model_configs.model_hyperparameters.max_seq_len}__{configs.model_configs.peft_type}"
             sweep_configuration["name"] = sweep_name
 
             if len(args.existing_sweep_id) > 0:

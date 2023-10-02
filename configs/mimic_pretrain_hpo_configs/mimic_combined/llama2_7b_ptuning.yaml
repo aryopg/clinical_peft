@@ -1,0 +1,40 @@
+model_configs:
+  peft_type: "p_tuning"
+  task_type: "causal_lm"
+  model_name_or_path: "meta-llama/Llama-2-7b-hf"
+  peft_hyperparameters:
+    method: bayes
+    metric:
+      name: eval_ppl
+      goal: minimize
+    parameters:
+      num_virtual_tokens:
+        values: [1, 5, 10, 15, 20]
+      encoder_reparameterization_type:
+        values: ["MLP", "LSTM"]
+      encoder_hidden_size: 
+        values: [64, 128, 256, 768]
+      encoder_num_layers:
+        values: [1, 2, 4, 8, 12]
+      encoder_dropout: 
+        values: [0.0, 0.1, 0.2]
+  model_hyperparameters:
+    learning_rate: 0.0003
+    warmup_steps_ratio: 0.06
+    max_seq_len: 512
+    gradient_accumulation_steps: 4
+training_configs:
+  dataset_paths:
+    - aryopg/mimic-combined
+  random_seed: 1234
+  device: 0
+  num_process: 8
+  test_size: 0.1
+  epochs: 1
+  steps: 1000000
+  batch_size: 10
+  log_steps: 100
+  eval_steps: 1000000
+  checkpoint_steps: 1000000  # Only checkpoint at the end
+  max_sweep_count: 20
+  outputs_dir: "outputs"

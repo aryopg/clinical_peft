@@ -1,0 +1,38 @@
+model_configs:
+  peft_type: "prompt_tuning"
+  task_type: "causal_lm"
+  model_name_or_path: "decapoda-research/llama-7b-hf"
+  peft_hyperparameters:
+    method: bayes
+    metric:
+      name: eval_ppl
+      goal: minimize
+    parameters:
+      num_virtual_tokens:
+        values: [1, 5, 10, 15, 20]
+      prompt_tuning_init:
+        values: ["TEXT", "RANDOM"]
+      prompt_tuning_init_text:
+        values: ["Finish this clinical note: "]
+      tokenizer_name_or_path:
+        values: ["decapoda-research/llama-7b-hf"]
+  model_hyperparameters:
+    learning_rate: 0.0003
+    warmup_steps_ratio: 0.06
+    max_seq_len: 512
+    gradient_accumulation_steps: 4
+training_configs:
+  dataset_paths:
+    - aryopg/mimic-iii
+  random_seed: 1234
+  device: 0
+  num_process: 8
+  test_size: 0.1
+  epochs: 1
+  steps: 1000000
+  batch_size: 10
+  log_steps: 100
+  eval_steps: 1000000
+  checkpoint_steps: 1000000  # Only checkpoint at the end
+  max_sweep_count: 20
+  outputs_dir: "outputs"
