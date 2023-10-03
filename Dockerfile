@@ -21,7 +21,7 @@ RUN conda init
 RUN conda install python=3.10 -y
 RUN conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia -y
 RUN conda install transformers datasets huggingface_hub evaluate -c huggingface -y
-RUN conda install sentencepiece pydantic python-dotenv black isort tqdm wandb pandas matplotlib accelerate scikit-learn pynvml -c conda-forge -y
+RUN conda install pip sentencepiece pydantic python-dotenv black isort tqdm wandb pandas matplotlib accelerate scikit-learn pynvml -c conda-forge -y
 RUN rm -rf /home/miniconda3/pkgs/*
 RUN PYTHONDONTWRITEBYTECODE=1
 
