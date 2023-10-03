@@ -32,7 +32,7 @@ run_names = [
     for config in configs
 ]
 if GPU_LIMIT > 1:
-    base_command = "accelerate launch --config_file configs/accelerate_configs/deepspeed.yaml scripts/train.py --config_filepath "
+    base_command = "accelerate launch --config_file configs/accelerate_configs/deepspeed_2gpus.yaml scripts/train.py --config_filepath "
 else:
     base_command = "accelerate launch scripts/train.py --config_filepath "
 commands = [base_command + config for config in configs]

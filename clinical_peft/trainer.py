@@ -13,6 +13,7 @@ from accelerate.tracking import WandBTracker
 from accelerate.utils import find_executable_batch_size
 from datasets import DatasetDict, load_dataset
 from evaluate import EvaluationModule
+from huggingface_hub import HfApi
 from peft import PeftConfig, PeftModel, get_peft_model
 from torch.nn import functional as F
 from torch.optim import AdamW
@@ -348,7 +349,14 @@ def train(
                     if (train_step + 1) >= num_training_steps:
                         break
                 if (train_step + 1) % configs.training_configs.checkpoint_steps == 0:
-                    accelerator.save_state(os.path.join(outputs_dir, "checkpoint"))
+                    unwrapped_model = accelerator.unwrap_model(model)
+                    unwrapped_model.save_pretrained(
+                        os.path.join(outputs_dir, "checkpoint"),
+                        is_main_process=accelerator.is_main_process,
+                        save_function=accelerator.save,
+                    )
+
+                    # accelerator.save_state(os.path.join(outputs_dir, "checkpoint"))
             # For classification tasks, log metrics at the end of an epoch
             if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
                 accelerator.log(
@@ -520,7 +528,13 @@ def train(
 
         accelerator.wait_for_everyone()
 
-        accelerator.save_state(os.path.join(outputs_dir, "checkpoint"))
+        # accelerator.save_state(os.path.join(outputs_dir, "checkpoint"))
+        unwrapped_model = accelerator.unwrap_model(model)
+        unwrapped_model.save_pretrained(
+            os.path.join(outputs_dir, "checkpoint"),
+            is_main_process=accelerator.is_main_process,
+            save_function=accelerator.save,
+        )
 
         if accelerator.is_main_process:
             hf_username = os.getenv("HF_USERNAME")
@@ -536,11 +550,19 @@ def train(
             huggingface_hub.create_repo(
                 hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
             )
-            model.push_to_hub(
-                hf_repo_name,
-                state_dict=accelerator.get_state_dict(model),
-                private=True,
-                use_auth_token=hf_upload_token,
+            # model.push_to_hub(
+            #     hf_repo_name,
+            #     state_dict=accelerator.get_state_dict(model),
+            #     private=True,
+            #     use_auth_token=hf_upload_token,
+            # )
+            api = HfApi(token=hf_upload_token)
+            api.upload_folder(
+                folder_path=os.path.join(outputs_dir, "checkpoint"),
+                repo_id=hf_repo_name,
+                repo_type="model",
+                multi_commits=True,
+                multi_commits_verbose=True,
             )
         accelerator.wait_for_everyone()
 
