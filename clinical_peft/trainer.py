@@ -729,7 +729,10 @@ def run(
     )
 
     # TODO: PMC-LLaMA doesn't specify these special characters
-    if "PMC_LLAMA" in configs.model_configs.model_name_or_path:
+    if (
+        "pmc_llama" in configs.model_configs.model_name_or_path.lower()
+        or "medllama" in configs.model_configs.model_name_or_path.lower()
+    ):
         for special_char in ["unk", "bos", "pad", "eos"]:
             setattr(
                 tokenizer,
