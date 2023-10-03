@@ -575,6 +575,9 @@ def train(
         torch.cuda.empty_cache()
         time.sleep(10)
 
+    accelerator.print("Loading model:")
+    accelerator.print(configs.model_configs.dict())
+    accelerator.print(peft_model_configs)
     inner_training_loop()
 
 
