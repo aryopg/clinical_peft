@@ -52,7 +52,7 @@ for run_name, command in zip(run_names, commands):
         name=run_name,
         image="aryopg/clinical-peft:latest",
         gpu_type="nvidia.com/gpu",
-        gpu_limit=1,
+        gpu_limit=2,
         gpu_product="NVIDIA-A100-SXM4-80GB",
         backoff_limit=4,
         command=["/bin/bash", "-c", "--"],
