@@ -28,7 +28,7 @@ model_configs:
     learning_rate: 0.0003
     warmup_steps_ratio: 0.06
     max_seq_len: 512
-    gradient_accumulation_steps: 4
+    gradient_accumulation_steps: 64
 training_configs:
   dataset_paths:
     - aryopg/mimic-iv
