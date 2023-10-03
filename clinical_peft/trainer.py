@@ -199,9 +199,6 @@ def train(
         elif configs.model_configs.task_type == TaskType.token_cls and labels_map:
             performance_metrics = {"seqeval": evaluate.load("seqeval")}
 
-        accelerator.print(configs.model_configs.pretrained_peft_name_or_path)
-        accelerator.print(configs.model_configs.peft_type)
-        accelerator.print(peft_model_configs)
         if configs.model_configs.pretrained_peft_name_or_path:
             # Load the Lora model
             model = PeftModel.from_pretrained(
@@ -575,9 +572,6 @@ def train(
         torch.cuda.empty_cache()
         time.sleep(10)
 
-    accelerator.print("Loading model:")
-    accelerator.print(configs.model_configs.dict())
-    accelerator.print(peft_model_configs)
     inner_training_loop()
 
 
