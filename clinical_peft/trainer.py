@@ -724,9 +724,24 @@ def run(
         padding_side = "left"
     else:
         padding_side = "right"
-    tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
-        configs.model_configs.model_name_or_path, padding_side=padding_side
-    )
+
+    # TODO: PMC-LLaMA doesn't specify these special characters
+    if (
+        "pmc_llama" in configs.model_configs.model_name_or_path.lower()
+        or "medllama" in configs.model_configs.model_name_or_path.lower()
+    ):
+        tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
+            configs.model_configs.model_name_or_path,
+            padding_side=padding_side,
+            unk_token=LLAMA_SPECIAL_CHARACTERS["unk"],
+            bos_token=LLAMA_SPECIAL_CHARACTERS["bos"],
+            pad_token=LLAMA_SPECIAL_CHARACTERS["pad"],
+            eos_token=LLAMA_SPECIAL_CHARACTERS["eos"],
+        )
+    else:
+        tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
+            configs.model_configs.model_name_or_path, padding_side=padding_side
+        )
 
     # TODO: PMC-LLaMA doesn't specify these special characters
     if (
