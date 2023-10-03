@@ -18,13 +18,13 @@ RUN ln -s /home/miniconda3/bin/conda /usr/bin/conda
 
 RUN conda update -n base -c defaults conda -y
 RUN conda init
+ENV PATH /home/miniconda3/bin:$PATH
 RUN conda install python=3.10 -y
 RUN conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia -y
 RUN conda install transformers datasets huggingface_hub evaluate -c huggingface -y
 RUN conda install pip sentencepiece pydantic python-dotenv black isort tqdm wandb pandas matplotlib accelerate scikit-learn pynvml -c conda-forge -y
 RUN rm -rf /home/miniconda3/pkgs/*
 RUN PYTHONDONTWRITEBYTECODE=1
-
 RUN pip install deepspeed
 RUN pip install peft==0.4.0
 RUN pip install -U tokenizers==0.13.3
