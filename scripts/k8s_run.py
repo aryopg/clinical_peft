@@ -1,40 +1,42 @@
 from kubejobs.jobs import KubernetesJob
 
-GPU_LIMIT = 2
+GPU_LIMIT = 1
 # List of commands to run as separate Kubernetes Jobs
 configs = [
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_lora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_lora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_7b_lora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_lora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_prefix_tuning.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_7b_prefix_tuning.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_prefix_tuning.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_adalora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_7b_adalora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_adalora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_baseline.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_7b_baseline.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_baseline.yaml",
+    # 13B
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_lora.yaml",
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_7b_lora.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_lora.yaml",
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_lora.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_lora.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_lora.yaml",
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_prefix_tuning.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_prefix_tuning.yaml",
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_7b_prefix_tuning.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_prefix_tuning.yaml",
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_prefix_tuning.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_prefix_tuning.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_prefix_tuning.yaml",
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_adalora.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_adalora.yaml",
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_7b_adalora.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_adalora.yaml",
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_adalora.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_adalora.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_adalora.yaml",
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_baseline.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_baseline.yaml",
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_7b_baseline.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_baseline.yaml",
-    # "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_baseline.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_baseline.yaml",
     # "configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_baseline.yaml",
-    "configs/mimic_pretrain_hpo_configs/mini_mimic_iv/llama2_7b_baseline.yaml",
-    "configs/mimic_pretrain_hpo_configs/mini_mimic_iv/llama2_7b_lora.yaml",
-    "configs/mimic_pretrain_hpo_configs/mini_mimic_iv/llama2_13b_baseline.yaml",
-    "configs/mimic_pretrain_hpo_configs/mini_mimic_iv/pmc_llama_7b_lora.yaml",
+    # DEBUG
+    # "configs/mimic_pretrain_hpo_configs/mini_mimic_iv/llama2_7b_baseline.yaml",
+    # "configs/mimic_pretrain_hpo_configs/mini_mimic_iv/llama2_7b_lora.yaml",
+    # "configs/mimic_pretrain_hpo_configs/mini_mimic_iv/llama2_13b_baseline.yaml",
+    # "configs/mimic_pretrain_hpo_configs/mini_mimic_iv/pmc_llama_7b_lora.yaml",
 ]
 
 base_args = "git clone https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git --branch longer_sequence && cd clinical_peft && "
@@ -45,9 +47,7 @@ run_names = [
 if GPU_LIMIT > 1:
     base_command = "CUDA_LAUNCH_BLOCKING=1 accelerate launch --config_file configs/accelerate_configs/deepspeed_2gpus_noaccum.yaml scripts/train.py --config_filepath "
 else:
-    base_command = (
-        "CUDA_LAUNCH_BLOCKING=1 accelerate launch scripts/train.py --config_filepath "
-    )
+    base_command = "CUDA_LAUNCH_BLOCKING=1 accelerate launch --mixed_precision bf16 scripts/train.py --config_filepath "
 commands = [base_command + config for config in configs]
 
 secret_env_vars = {

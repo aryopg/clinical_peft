@@ -1,7 +1,7 @@
 model_configs:
   peft_type: "prompt_tuning"
   task_type: "causal_lm"
-  model_name_or_path: "decapoda-research/llama-7b-hf"
+  model_name_or_path: "aryopg/llama-7b"
   peft_hyperparameters:
     method: grid
     metric:
@@ -15,7 +15,7 @@ model_configs:
       prompt_tuning_init_text:
         values: ["Finish this clinical note: "]
       tokenizer_name_or_path:
-        values: ["decapoda-research/llama-7b-hf"]
+        values: ["aryopg/llama-7b"]
   model_hyperparameters:
     learning_rate: 0.0003
     warmup_steps_ratio: 0.06
@@ -30,7 +30,7 @@ training_configs:
   test_size: 0.1
   epochs: 1
   steps: 1000000
-  batch_size: 8
+  batch_size: 4
   log_steps: 100
   eval_steps: 1000000
   checkpoint_steps: 1000000  # Only checkpoint at the end

@@ -1,7 +1,7 @@
 model_configs:
   peft_type: null
   task_type: "causal_lm"
-  model_name_or_path: "decapoda-research/llama-7b-hf"
+  model_name_or_path: "aryopg/llama-7b"
   peft_hyperparameters: null
   model_hyperparameters:
     learning_rate: 0.00003
@@ -17,7 +17,7 @@ training_configs:
   test_size: 0.1
   epochs: 1
   steps: 1000000
-  batch_size: 8
+  batch_size: 4
   log_steps: 100
   eval_steps: 1000000  # Only evaluate at the end
   checkpoint_steps: 10000
