@@ -1,7 +1,6 @@
 from kubejobs.jobs import KubernetesJob
 
-base_args = "git clone https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git --branch longer_sequence && cd clinical_peft && "
-
+GPU_LIMIT = 2
 # List of commands to run as separate Kubernetes Jobs
 configs = [
     "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_lora.yaml",
@@ -11,13 +10,31 @@ configs = [
     "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_lora.yaml",
     "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_lora.yaml",
     "configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_lora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_prefix_tuning.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_prefix_tuning.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_7b_prefix_tuning.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_prefix_tuning.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_prefix_tuning.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_prefix_tuning.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_prefix_tuning.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_adalora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_adalora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_7b_adalora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_adalora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_adalora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_adalora.yaml",
+    "configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_adalora.yaml",
 ]
 
+base_args = "git clone https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git --branch longer_sequence && cd clinical_peft && "
 run_names = [
     "-".join(config.split("/")[-2:]).replace(".yaml", "").replace("_", "-")
     for config in configs
 ]
-base_command = "accelerate launch scripts/train.py --config_filepath "
+if GPU_LIMIT > 1:
+    base_command = "accelerate launch --config_file configs/accelerate_configs/deepspeed.yaml scripts/train.py --config_filepath "
+else:
+    base_command = "accelerate launch scripts/train.py --config_filepath "
 commands = [base_command + config for config in configs]
 
 secret_env_vars = {
@@ -52,7 +69,7 @@ for run_name, command in zip(run_names, commands):
         name=run_name,
         image="aryopg/clinical-peft:latest",
         gpu_type="nvidia.com/gpu",
-        gpu_limit=2,
+        gpu_limit=GPU_LIMIT,
         gpu_product="NVIDIA-A100-SXM4-80GB",
         backoff_limit=4,
         command=["/bin/bash", "-c", "--"],
