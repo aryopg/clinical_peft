@@ -50,7 +50,7 @@ for run_name, command in zip(run_names, commands):
     print(f"Creating job for: {base_args + command}")
     job = KubernetesJob(
         name=run_name,
-        image="aryopg/clinical-peft:v1",
+        image="aryopg/clinical-peft:latest",
         gpu_type="nvidia.com/gpu",
         gpu_limit=1,
         gpu_product="NVIDIA-A100-SXM4-80GB",
