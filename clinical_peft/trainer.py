@@ -752,6 +752,12 @@ def run(
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
+    accelerator.print("Tokenizer unique characters")
+    accelerator.print(f"tokenizer.bos_token: {tokenizer.bos_token}")
+    accelerator.print(f"tokenizer.eos_token: {tokenizer.eos_token}")
+    accelerator.print(f"tokenizer.unk_token: {tokenizer.unk_token}")
+    accelerator.print(f"tokenizer.pad_token: {tokenizer.pad_token}")
+
     with accelerator.main_process_first():
         dataset = preprocess_dataset(dataset, configs, tokenizer)
     accelerator.wait_for_everyone()
