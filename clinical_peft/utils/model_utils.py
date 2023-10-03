@@ -14,6 +14,11 @@ def load_peft_config(
     peft_hyperparameters: dict,
     inference_mode: bool = False,
 ) -> PeftConfig:
+    print("PEFT init params")
+    print(f"peft_type: {peft_type}")
+    print(f"task_type: {task_type}")
+    print(f"peft_hyperparameters: {peft_hyperparameters}")
+    print(f"inference_mode: {inference_mode}")
     return PEFT_CONFIGS[peft_type](
         task_type=TASK_TYPE[TaskType[task_type]],
         inference_mode=inference_mode,
