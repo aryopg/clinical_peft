@@ -21,7 +21,7 @@ model_configs:
     gradient_accumulation_steps: 64
 training_configs:
   dataset_paths:
-    - aryopg/mimic-iv
+    - aryopg/mini-mimic-iv
   random_seed: 1234
   device: 0
   num_process: 8
