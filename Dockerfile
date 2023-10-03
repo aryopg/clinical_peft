@@ -7,7 +7,7 @@ COPY requirements_cpu.txt /tmp/requirements_cpu.txt
 
 # Install required apt packages
 RUN apt update -y --fix-missing
-RUN apt install -y byobu git python3 python-is-python3 pip bc htop parallel nano wget unzip python3.10-venv sox ffmpeg libcairo2 libcairo2-dev libgirepository1.0-dev libdbus-1-dev
+RUN apt install -y byobu git wget unzip htop zsh parallel
 
 # Check if an NVIDIA GPU is available
 RUN wget -c https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
