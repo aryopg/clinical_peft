@@ -25,7 +25,8 @@ def main():
         for config in configs["configs"]
     ]
     if configs["gpu_limit"] > 1:
-        base_command = "CUDA_LAUNCH_BLOCKING=1 accelerate launch --config_file configs/accelerate_configs/deepspeed_2gpus_noaccum.yaml scripts/train.py --config_filepath "
+        accelerate_config = configs["accelerate_config"]
+        base_command = f"CUDA_LAUNCH_BLOCKING=1 accelerate launch --config_file {accelerate_config} scripts/train.py --config_filepath "
     else:
         base_command = "CUDA_LAUNCH_BLOCKING=1 accelerate launch --mixed_precision bf16 scripts/train.py --config_filepath "
     commands = [base_command + config for config in configs["configs"]]

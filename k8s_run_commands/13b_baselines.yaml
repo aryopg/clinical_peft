@@ -1,4 +1,5 @@
 gpu_limit: 4
+accelerate_config: configs/accelerate_configs/deepspeed_4gpus.yaml
 configs:
   - configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_baseline.yaml
   - configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_baseline.yaml
