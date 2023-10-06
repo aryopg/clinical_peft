@@ -22,13 +22,13 @@ def main():
     base_args = "git clone https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git --branch longer_sequence && cd clinical_peft && "
     run_names = [
         "-".join(config.split("/")[-2:]).replace(".yaml", "").replace("_", "-")
-        for config in configs.configs
+        for config in configs["configs"]
     ]
-    if configs.gpu_limit > 1:
+    if configs["gpu_limit"] > 1:
         base_command = "CUDA_LAUNCH_BLOCKING=1 accelerate launch --config_file configs/accelerate_configs/deepspeed_2gpus_noaccum.yaml scripts/train.py --config_filepath "
     else:
         base_command = "CUDA_LAUNCH_BLOCKING=1 accelerate launch --mixed_precision bf16 scripts/train.py --config_filepath "
-    commands = [base_command + config for config in configs]
+    commands = [base_command + config for config in configs["configs"]]
 
     secret_env_vars = {
         "GIT_TOKEN": {"secret_name": "aryo-secrets", "key": "aryo-git-token"},
@@ -62,7 +62,7 @@ def main():
             name=run_name,
             image="aryopg/clinical-peft:latest",
             gpu_type="nvidia.com/gpu",
-            gpu_limit=configs.gpu_limit,
+            gpu_limit=configs["gpu_limit"],
             gpu_product="NVIDIA-A100-SXM4-80GB",
             backoff_limit=4,
             command=["/bin/bash", "-c", "--"],
