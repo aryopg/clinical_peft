@@ -1,0 +1,11 @@
+gpu_limit: 4
+configs:
+  - configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_baseline.yaml
+  - configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_7b_baseline.yaml
+  - configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_7b_baseline.yaml
+  - configs/mimic_pretrain_hpo_configs/mimic_iii/llama_7b_baseline.yaml
+  - configs/mimic_pretrain_hpo_configs/mimic_iii/llama2_7b_baseline.yaml
+  - configs/mimic_pretrain_hpo_configs/mimic_iii/pmc_llama_7b_baseline.yaml
+  - configs/mimic_pretrain_hpo_configs/mimic_combined/llama_7b_baseline.yaml
+  - configs/mimic_pretrain_hpo_configs/mimic_combined/llama2_7b_baseline.yaml
+  - configs/mimic_pretrain_hpo_configs/mimic_combined/pmc_llama_7b_baseline.yaml
