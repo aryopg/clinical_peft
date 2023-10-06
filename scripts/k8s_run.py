@@ -4,9 +4,8 @@ import sys
 
 sys.path.append(os.getcwd())
 
+import yaml
 from kubejobs.jobs import KubernetesJob
-
-from clinical_peft.utils import common_utils
 
 
 def argument_parser():
@@ -18,7 +17,7 @@ def argument_parser():
 
 def main():
     args = argument_parser()
-    configs = common_utils.load_yaml(args.config_filepath)
+    configs = yaml.safe_load(open(args.run_configs_filepath, "r"))
 
     base_args = "git clone https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git --branch longer_sequence && cd clinical_peft && "
     run_names = [
