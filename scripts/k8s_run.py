@@ -21,7 +21,9 @@ def main():
 
     base_args = "git clone https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git --branch longer_sequence && cd clinical_peft && "
     run_names = [
-        "-".join(config.split("/")[-2:]).replace(".yaml", "").replace("_", "-")
+        "-".join(config["config_filepath"].split("/")[-2:])
+        .replace(".yaml", "")
+        .replace("_", "-")
         for config in configs["configs"]
     ]
     if configs["gpu_limit"] > 1:
@@ -29,7 +31,14 @@ def main():
         base_command = f"CUDA_LAUNCH_BLOCKING=1 accelerate launch --config_file {accelerate_config} scripts/train.py --config_filepath "
     else:
         base_command = "CUDA_LAUNCH_BLOCKING=1 accelerate launch --mixed_precision bf16 scripts/train.py --config_filepath "
-    commands = [base_command + config for config in configs["configs"]]
+
+    commands = []
+    for config in configs["configs"]:
+        command = base_command + config["config_filepath"]
+        if config["existing_sweep_id"]:
+            existing_sweep_id = config["existing_sweep_id"]
+            command += f" --existing_sweep_id {existing_sweep_id}"
+        commands += [command]
 
     secret_env_vars = {
         "GIT_TOKEN": {"secret_name": "aryo-secrets", "key": "aryo-git-token"},

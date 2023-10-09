@@ -9,7 +9,7 @@ model_configs:
       goal: minimize
     parameters:
       num_virtual_tokens:
-        values: [1, 5, 10, 15, 20]
+        values: [2, 3, 4, 5]
       prompt_tuning_init:
         values: ["TEXT", "RANDOM"]
       prompt_tuning_init_text:

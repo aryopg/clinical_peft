@@ -1,39 +1,75 @@
 gpu_limit: 2
 accelerate_config: configs/accelerate_configs/deepspeed_2gpus.yaml
 configs:
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_adalora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_adalora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_adalora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_adalora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/llama_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/llama2_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/pmc_llama_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/medllama_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/llama_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/llama2_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/pmc_llama_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/medllama_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/llama_13b_adalora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/llama2_13b_adalora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/pmc_llama_13b_adalora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_iii/medllama_13b_adalora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/llama_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/llama2_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/pmc_llama_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/medllama_13b_lora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/llama_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/llama2_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/pmc_llama_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/medllama_13b_prefix_tuning.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/llama_13b_adalora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/llama2_13b_adalora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/pmc_llama_13b_adalora.yaml
-  - configs/mimic_pretrain_hpo_configs/mimic_combined/medllama_13b_adalora.yaml
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_adalora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/llama2_13b_adalora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/pmc_llama_13b_adalora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/medllama_13b_adalora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/llama_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/llama2_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/pmc_llama_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/medllama_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/llama_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/llama2_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/pmc_llama_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/medllama_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/llama_13b_adalora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/llama2_13b_adalora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/pmc_llama_13b_adalora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_iii/medllama_13b_adalora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/llama_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/llama2_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/pmc_llama_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/medllama_13b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/llama_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/llama2_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/pmc_llama_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/medllama_13b_prefix_tuning.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/llama_13b_adalora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/llama2_13b_adalora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/pmc_llama_13b_adalora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_hpo_configsmimic_combined/medllama_13b_adalora.yaml"
+    existing_sweep_id: ""
