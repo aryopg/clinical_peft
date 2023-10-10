@@ -108,9 +108,7 @@ def main() -> None:
                 count=configs.training_configs.max_sweep_count,
             )
         else:
-            run_name = (
-                f"{dataset_name}__{model_name}__{configs.model_configs.peft_type}"
-            )
+            run_name = f"{dataset_name}__{model_name}__{configs.model_configs.model_hyperparameters.max_seq_len}__{configs.model_configs.peft_type}"
 
             accelerator = Accelerator(
                 gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
@@ -121,7 +119,7 @@ def main() -> None:
                 accelerator, configs, wandb_entity, wandb_project, run_name, outputs_dir
             )
     else:
-        run_name = f"{dataset_name}__{model_name}__baseline"
+        run_name = f"{dataset_name}__{model_name}__{configs.model_configs.model_hyperparameters.max_seq_len}__baseline"
 
         accelerator = Accelerator(
             gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,

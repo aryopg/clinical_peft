@@ -1,0 +1,25 @@
+model_configs:
+  peft_type: null
+  task_type: "causal_lm"
+  model_name_or_path: "decapoda-research/llama-13b-hf"
+  peft_hyperparameters: null
+  model_hyperparameters:
+    learning_rate: 0.00003
+    warmup_steps_ratio: 0.06
+    max_seq_len: 512
+    gradient_accumulation_steps: 64
+training_configs:
+  dataset_paths:
+    - aryopg/mimic-iv
+  random_seed: 1234
+  device: 0
+  num_process: 8
+  test_size: 0.1
+  epochs: 1
+  steps: 1000000
+  batch_size: 1
+  log_steps: 100
+  eval_steps: 1000000  # Only evaluate at the end
+  checkpoint_steps: 10000
+  max_sweep_count: 20
+  outputs_dir: "outputs"
