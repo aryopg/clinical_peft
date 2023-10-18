@@ -1,0 +1,9 @@
+gpu_limit: 2
+accelerate_config: "configs/accelerate_configs/deepspeed_2gpus.yaml"
+configs:
+  - config_filepath: "configs/mimic_pretrain_best_configs/mimic_iv/llama_7b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_best_configs/mimic_iii/llama_7b_lora.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/mimic_pretrain_best_configs/mimic_combined/llama_7b_lora.yaml"
+    existing_sweep_id: ""
