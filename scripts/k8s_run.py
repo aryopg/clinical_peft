@@ -71,6 +71,8 @@ def main():
         job = KubernetesJob(
             name=run_name,
             image="aryopg/clinical-peft:latest",
+            cpu_request="8",
+            ram_request="16Gi",
             gpu_type="nvidia.com/gpu",
             gpu_limit=configs["gpu_limit"],
             gpu_product="NVIDIA-A100-SXM4-80GB",
