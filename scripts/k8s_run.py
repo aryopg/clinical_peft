@@ -73,7 +73,7 @@ def main():
             image="aryopg/clinical-peft:latest",
             gpu_type="nvidia.com/gpu",
             gpu_limit=configs["gpu_limit"],
-            gpu_product="NVIDIA-A100-SXM4-80GB",
+            gpu_product=configs["gpu_product"],
             backoff_limit=4,
             command=["/bin/bash", "-c", "--"],
             args=[base_args + command],

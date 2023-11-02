@@ -1,4 +1,5 @@
 gpu_limit: 4
+gpu_product: NVIDIA-A100-SXM4-80GB
 accelerate_config: configs/accelerate_configs/deepspeed_4gpus.yaml
 configs:
   - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_7b_baseline.yaml"
