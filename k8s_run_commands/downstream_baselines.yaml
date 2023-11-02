@@ -1,0 +1,10 @@
+gpu_limit: 1
+gpu_product: NVIDIA-A100-SXM4-40GB
+accelerate_config: ""
+configs:
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/diagnosis/core_baseline.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/procedure/bioclinicalbert_baseline.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/procedure/core_baseline.yaml"
+    existing_sweep_id: ""
