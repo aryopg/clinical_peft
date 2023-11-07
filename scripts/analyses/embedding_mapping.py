@@ -96,6 +96,8 @@ def main() -> None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
     text_list = dataset["test"]["text"]
+    print(text_list[:5])
+    print(f"len(text_list): {len(text_list)}")
     inputs = tokenizer(
         text_list,
         padding="max_length",
@@ -121,11 +123,11 @@ def main() -> None:
     )
 
     print("Prep Dataframe")
-    cols = [f"emb_{i}" for i in range(llama_embeddings.shape[1])]
+    cols = [f"emb_{i}" for i in range(len(llama_embeddings))]
     llama_embeddings_df = pd.DataFrame(llama_embeddings, columns=cols)
     llama_embeddings_df["LABEL"] = dataset["test"]["label"]
 
-    cols = [f"emb_{i}" for i in range(clinical_llama_lora_embeddings.shape[1])]
+    cols = [f"emb_{i}" for i in range(len(clinical_llama_lora_embeddings))]
     clinical_llama_lora_embeddings_df = pd.DataFrame(
         clinical_llama_lora_embeddings, columns=cols
     )
