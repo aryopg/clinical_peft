@@ -33,7 +33,7 @@ def argument_parser():
     return args
 
 
-def get_text_representation(model, inputs, batch_size=32, embedding_pool="last"):
+def get_text_representation(model, inputs, batch_size=4, embedding_pool="last"):
     embeddings = []
     with torch.no_grad():
         for i in range(0, len(inputs), batch_size):
@@ -59,14 +59,28 @@ def main() -> None:
 
     # Load dataset
     dataset = load_dataset(args.dataset_path)
-    print(dataset)
 
     # Load original LLaMA
     llama = AutoModel.from_pretrained(args.pretrained_llama_path)
-    tokenizer = AutoTokenizer.from_pretrained(args.pretrained_llama_path)
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.pretrained_llama_path, padding_side="right"
+    )
+
+    if (
+        getattr(tokenizer, "pad_token_id") is None
+        or getattr(tokenizer, "pad_token") is None
+    ):
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.pad_token_id = tokenizer.eos_token_id
 
     text_list = dataset["test"]["text"]
-    inputs = tokenizer(text_list, padding=True, truncation=True, return_tensors="pt")
+    inputs = tokenizer(
+        text_list,
+        padding="max_length",
+        max_length=512,
+        truncation=True,
+        return_tensors="pt",
+    )
 
     # Load original LLaMA + Clinical LLaMA-LoRA
     clinical_llama_lora = PeftModel.from_pretrained(
