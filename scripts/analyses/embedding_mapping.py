@@ -38,9 +38,9 @@ def get_text_representation(model, inputs, batch_size=4, embedding_pool="last"):
     with torch.no_grad():
         for i in range(0, len(inputs), batch_size):
             batch_inputs = inputs[i : i + batch_size]
-            batch_input_ids = torch.stack([enc.ids for enc in batch_inputs])
+            batch_input_ids = torch.stack([torch.tensor(x.ids) for x in batch_inputs])
             batch_attention_mask = torch.stack(
-                [enc.attention_mask for enc in batch_inputs]
+                [torch.tensor(x.attention_mask) for x in batch_inputs]
             )
             outputs = model(
                 input_ids=batch_input_ids,
