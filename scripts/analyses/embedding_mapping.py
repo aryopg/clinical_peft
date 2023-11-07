@@ -53,7 +53,7 @@ def get_text_representation(
                 attention_mask=batch_attention_mask,
             )
             if embedding_pool == "last":
-                batch_embeddings = outputs.last_hidden_state[:, -1, :].numpy()
+                batch_embeddings = outputs.last_hidden_state[:, -1, :].cpu().numpy()
             embeddings.extend(batch_embeddings)
     return embeddings
 
