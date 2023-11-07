@@ -45,14 +45,14 @@ def get_text_representation(
     embeddings = []
     model.to(device)
     with torch.no_grad():
-        for i in tqdm(range(0, len(inputs), batch_size)):
-            batch_inputs = inputs[i : i + batch_size]
-            batch_input_ids = torch.stack(
-                [torch.tensor(x.ids).to(device) for x in batch_inputs]
+        for i in tqdm(range(0, len(inputs["input_ids"]), batch_size)):
+            batch_input_ids = torch.tensor(inputs["input_ids"][i : i + batch_size]).to(
+                device
             )
-            batch_attention_mask = torch.stack(
-                [torch.tensor(x.attention_mask).to(device) for x in batch_inputs]
-            )
+            batch_attention_mask = torch.tensor(
+                inputs["attention_mask"][i : i + batch_size]
+            ).to(device)
+
             outputs = model(
                 input_ids=batch_input_ids,
                 attention_mask=batch_attention_mask,
