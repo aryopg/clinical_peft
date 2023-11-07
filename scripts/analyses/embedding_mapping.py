@@ -110,7 +110,6 @@ def main() -> None:
     clinical_llama_lora = PeftModel.from_pretrained(
         llama,
         args.clinical_llama_lora_path,
-        task_type=TaskType.FEATURE_EXTRACTION,
     )
 
     # Get embeddings for each text in the test split
