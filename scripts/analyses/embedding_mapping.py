@@ -139,6 +139,19 @@ def main() -> None:
     #     clinical_llama_lora_embeddings
     # )
 
+    # Create a new WandB artifact
+    artifact = wandb.Artifact("llama_embeddings_df", type="dataset")
+    llama_embeddings_df.to_csv("llama_embeddings_df.csv", index=False)
+    artifact.add_file("llama_embeddings_df.csv")
+    wandb.log_artifact(artifact)
+
+    artifact = wandb.Artifact("clinical_llama_lora_embeddings_df", type="dataset")
+    clinical_llama_lora_embeddings_df.to_csv(
+        "clinical_llama_lora_embeddings_df.csv", index=False
+    )
+    artifact.add_file("clinical_llama_lora_embeddings_df.csv")
+    wandb.log_artifact(artifact)
+
     print("Log to WandB")
     # log pandas DataFrame to W&B easily
     llama_embeddings_table = wandb.Table(
