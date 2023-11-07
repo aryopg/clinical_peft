@@ -19,7 +19,12 @@ from datasets import DatasetDict, load_dataset
 from peft import PeftConfig, PeftModel, get_peft_model
 from sklearn.decomposition import PCA
 from tqdm import tqdm
-from transformers import AutoModel, AutoTokenizer
+from transformers import (
+    AutoModel,
+    AutoModelForCausalLM,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+)
 
 import wandb
 
@@ -51,9 +56,13 @@ def get_text_representation(
             outputs = model(
                 input_ids=batch_input_ids,
                 attention_mask=batch_attention_mask,
+                output_hidden_states=True,
             )
+            last_hidden_states = outputs.hidden_states[-2]
+
+            # Extract embeddings for the last token
             if embedding_pool == "last":
-                batch_embeddings = outputs.last_hidden_state[:, -1, :].cpu().numpy()
+                batch_embeddings = last_hidden_states[:, -1, :].cpu().numpy()
             embeddings.extend(batch_embeddings)
     return embeddings
 
@@ -74,7 +83,7 @@ def main() -> None:
     dataset = load_dataset(args.dataset_path)
 
     # Load original LLaMA
-    llama = AutoModel.from_pretrained(args.pretrained_llama_path)
+    llama = AutoModelForCausalLM.from_pretrained(args.pretrained_llama_path)
     tokenizer = AutoTokenizer.from_pretrained(
         args.pretrained_llama_path, padding_side="right"
     )
@@ -95,10 +104,13 @@ def main() -> None:
         return_tensors="pt",
     )
 
+    print(f"Dataset size: {len(inputs)}")
+
     # Load original LLaMA + Clinical LLaMA-LoRA
     clinical_llama_lora = PeftModel.from_pretrained(
         llama,
         args.clinical_llama_lora_path,
+        task_type=TaskType.FEATURE_EXTRACTION,
     )
 
     # Get embeddings for each text in the test split
