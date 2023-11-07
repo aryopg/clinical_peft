@@ -120,6 +120,7 @@ def main() -> None:
         clinical_llama_lora, inputs
     )
 
+    print(llama_embeddings)
     print("Prep Dataframe")
     cols = [f"emb_{i}" for i in range(llama_embeddings[0].size(1))]
     llama_embeddings_df = pd.DataFrame(llama_embeddings, columns=cols)
