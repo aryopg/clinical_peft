@@ -119,14 +119,12 @@ def main() -> None:
     clinical_llama_lora_embeddings = get_text_representation(
         clinical_llama_lora, inputs
     )
-
-    print(llama_embeddings)
     print("Prep Dataframe")
-    cols = [f"emb_{i}" for i in range(llama_embeddings[0].size(1))]
+    cols = [f"emb_{i}" for i in range(llama_embeddings[0].shape[0])]
     llama_embeddings_df = pd.DataFrame(llama_embeddings, columns=cols)
     llama_embeddings_df["LABEL"] = dataset["test"]["label"]
 
-    cols = [f"emb_{i}" for i in range(clinical_llama_lora_embeddings[0].size(1))]
+    cols = [f"emb_{i}" for i in range(clinical_llama_lora_embeddings[0].shape[0])]
     clinical_llama_lora_embeddings_df = pd.DataFrame(
         clinical_llama_lora_embeddings, columns=cols
     )
