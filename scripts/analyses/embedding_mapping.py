@@ -18,6 +18,7 @@ import torch
 from datasets import DatasetDict, load_dataset
 from peft import PeftConfig, PeftModel, get_peft_model
 from sklearn.decomposition import PCA
+from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
 
 import wandb
@@ -36,7 +37,7 @@ def argument_parser():
 def get_text_representation(model, inputs, batch_size=4, embedding_pool="last"):
     embeddings = []
     with torch.no_grad():
-        for i in range(0, len(inputs), batch_size):
+        for i in tqdm(range(0, len(inputs), batch_size)):
             batch_inputs = inputs[i : i + batch_size]
             batch_input_ids = torch.stack([torch.tensor(x.ids) for x in batch_inputs])
             batch_attention_mask = torch.stack(
@@ -96,11 +97,14 @@ def main() -> None:
     )
 
     # Get embeddings for each text in the test split
+    print("Get text representation from LLaMA")
     llama_embeddings = get_text_representation(llama, inputs)
+    print("Get text representation from LLaMA + Clinical LLaMA-LoRA")
     clinical_llama_lora_embeddings = get_text_representation(
         clinical_llama_lora, inputs
     )
 
+    print("Prep Dataframe")
     cols = [f"emb_{i}" for i in range(llama_embeddings.shape[1])]
     llama_embeddings_df = pd.DataFrame(llama_embeddings, columns=cols)
     llama_embeddings_df["LABEL"] = dataset["test"]["label"]
@@ -118,6 +122,7 @@ def main() -> None:
     #     clinical_llama_lora_embeddings
     # )
 
+    print("Log to WandB")
     # log pandas DataFrame to W&B easily
     llama_embeddings_table = wandb.Table(
         columns=llama_embeddings_df.columns.to_list(), data=llama_embeddings_df.values
