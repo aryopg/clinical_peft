@@ -121,11 +121,11 @@ def main() -> None:
     )
 
     print("Prep Dataframe")
-    cols = [f"emb_{i}" for i in range(len(llama_embeddings))]
+    cols = [f"emb_{i}" for i in range(llama_embeddings[0].size(1))]
     llama_embeddings_df = pd.DataFrame(llama_embeddings, columns=cols)
     llama_embeddings_df["LABEL"] = dataset["test"]["label"]
 
-    cols = [f"emb_{i}" for i in range(len(clinical_llama_lora_embeddings))]
+    cols = [f"emb_{i}" for i in range(clinical_llama_lora_embeddings[0].size(1))]
     clinical_llama_lora_embeddings_df = pd.DataFrame(
         clinical_llama_lora_embeddings, columns=cols
     )
