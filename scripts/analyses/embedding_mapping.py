@@ -96,8 +96,6 @@ def main() -> None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
     text_list = dataset["test"]["text"]
-    print(text_list[:5])
-    print(f"len(text_list): {len(text_list)}")
     inputs = tokenizer(
         text_list,
         padding="max_length",
@@ -106,7 +104,7 @@ def main() -> None:
         return_tensors="pt",
     )
 
-    print(f"Dataset size: {len(inputs)}")
+    print(f"Dataset size: {len(inputs['input_ids'])}")
 
     # Load original LLaMA + Clinical LLaMA-LoRA
     clinical_llama_lora = PeftModel.from_pretrained(
