@@ -109,6 +109,22 @@ def main() -> None:
 
     print(f"Dataset size: {len(inputs['input_ids'])}")
 
+    # Get embeddings for each text in the test split
+    print("Get text representation from LLaMA")
+    llama_embeddings = get_text_representation(llama, inputs)
+
+    print("Prep Dataframe from LLaMA")
+    cols = [f"emb_{i}" for i in range(llama_embeddings[0].shape[0])]
+    llama_embeddings_df = pd.DataFrame(llama_embeddings, columns=cols)
+    llama_embeddings_df["LABEL"] = dataset["test"]["label"][: len(llama_embeddings)]
+
+    # Create a new WandB artifact
+    print("Create a WandB artifact from LLaMA embedding")
+    artifact = wandb.Artifact("llama_embeddings_df", type="dataset")
+    llama_embeddings_df.to_csv("llama_embeddings_df.csv", index=False)
+    artifact.add_file("llama_embeddings_df.csv")
+    wandb.log_artifact(artifact)
+
     # Load original LLaMA + Clinical LLaMA-LoRA
     clinical_llama_lora = PeftModel.from_pretrained(
         llama,
@@ -122,18 +138,12 @@ def main() -> None:
     for n, p in lora_params.items():
         print(n, p.sum())
 
-    # Get embeddings for each text in the test split
-    print("Get text representation from LLaMA")
-    llama_embeddings = get_text_representation(llama, inputs)
     print("Get text representation from LLaMA + Clinical LLaMA-LoRA")
     clinical_llama_lora_embeddings = get_text_representation(
         clinical_llama_lora, inputs
     )
-    print("Prep Dataframe")
-    cols = [f"emb_{i}" for i in range(llama_embeddings[0].shape[0])]
-    llama_embeddings_df = pd.DataFrame(llama_embeddings, columns=cols)
-    llama_embeddings_df["LABEL"] = dataset["test"]["label"][: len(llama_embeddings)]
 
+    print("Prep Dataframe from LLaMA + Clinical LLaMA-LoRA")
     cols = [f"emb_{i}" for i in range(clinical_llama_lora_embeddings[0].shape[0])]
     clinical_llama_lora_embeddings_df = pd.DataFrame(
         clinical_llama_lora_embeddings, columns=cols
@@ -142,12 +152,7 @@ def main() -> None:
         : len(clinical_llama_lora_embeddings)
     ]
 
-    # Create a new WandB artifact
-    artifact = wandb.Artifact("llama_embeddings_df", type="dataset")
-    llama_embeddings_df.to_csv("llama_embeddings_df.csv", index=False)
-    artifact.add_file("llama_embeddings_df.csv")
-    wandb.log_artifact(artifact)
-
+    print("Create a WandB artifact from LLaMA + Clinical LLaMA-LoRA embedding")
     artifact = wandb.Artifact("clinical_llama_lora_embeddings_df", type="dataset")
     clinical_llama_lora_embeddings_df.to_csv(
         "clinical_llama_lora_embeddings_df.csv", index=False
@@ -155,22 +160,22 @@ def main() -> None:
     artifact.add_file("clinical_llama_lora_embeddings_df.csv")
     wandb.log_artifact(artifact)
 
-    print("Log to WandB")
-    # log pandas DataFrame to W&B easily
-    llama_embeddings_table = wandb.Table(
-        columns=llama_embeddings_df.columns.to_list(), data=llama_embeddings_df.values
-    )
-    clinical_llama_lora_embeddings_table = wandb.Table(
-        columns=clinical_llama_lora_embeddings_df.columns.to_list(),
-        data=clinical_llama_lora_embeddings_df.values,
-    )
+    # print("Log to WandB")
+    # # log pandas DataFrame to W&B easily
+    # llama_embeddings_table = wandb.Table(
+    #     columns=llama_embeddings_df.columns.to_list(), data=llama_embeddings_df.values
+    # )
+    # clinical_llama_lora_embeddings_table = wandb.Table(
+    #     columns=clinical_llama_lora_embeddings_df.columns.to_list(),
+    #     data=clinical_llama_lora_embeddings_df.values,
+    # )
 
-    wandb.log(
-        {
-            "LLaMA Embedding": llama_embeddings_table,
-            "LLaMA + Clinical LLaMA-LoRA Embedding": clinical_llama_lora_embeddings_table,
-        }
-    )
+    # wandb.log(
+    #     {
+    #         "LLaMA Embedding": llama_embeddings_table,
+    #         "LLaMA + Clinical LLaMA-LoRA Embedding": clinical_llama_lora_embeddings_table,
+    #     }
+    # )
     wandb.finish()
 
 
