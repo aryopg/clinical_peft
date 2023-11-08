@@ -45,6 +45,8 @@ def get_text_representation(
     embeddings = []
     for name, param in model.named_parameters():
         print(name)
+
+    print(len(model.named_parameters()))
     model.to(device)
     model.eval()
     with torch.no_grad():
@@ -61,12 +63,14 @@ def get_text_representation(
                 attention_mask=batch_attention_mask,
                 output_hidden_states=True,
             )
+            print(outputs.hidden_states.size())
             last_hidden_states = outputs.hidden_states[-2]
 
             # Extract embeddings for the last token
             if embedding_pool == "last":
                 batch_embeddings = last_hidden_states[:, -1, :].cpu().numpy()
             embeddings.extend(batch_embeddings)
+            break
     return embeddings
 
 
