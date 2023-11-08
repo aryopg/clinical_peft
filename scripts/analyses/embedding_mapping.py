@@ -61,14 +61,10 @@ def get_text_representation(
                 attention_mask=batch_attention_mask,
                 output_hidden_states=True,
             )
-            print(outputs.hidden_states)
-            print(outputs.hidden_states[1].size())
-            print(outputs.hidden_states[-1].size())
-            last_hidden_states = outputs.hidden_states[1][-2]
 
             # Extract embeddings for the last token
             if embedding_pool == "last":
-                batch_embeddings = last_hidden_states[:, -1, :].cpu().numpy()
+                batch_embeddings = outputs.last_hidden_state[:, -1, :].cpu().numpy()
             embeddings.extend(batch_embeddings)
             break
     return embeddings
