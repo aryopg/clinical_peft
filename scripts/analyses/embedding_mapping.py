@@ -61,7 +61,9 @@ def get_text_representation(
                 attention_mask=batch_attention_mask,
                 output_hidden_states=True,
             )
+            print(outputs.hidden_states)
             print(outputs.hidden_states[1].size())
+            print(outputs.hidden_states[-1].size())
             last_hidden_states = outputs.hidden_states[1][-2]
 
             # Extract embeddings for the last token
