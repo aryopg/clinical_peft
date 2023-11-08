@@ -115,6 +115,13 @@ def main() -> None:
         args.clinical_llama_lora_path,
     )
 
+    # Debugging LoRA params: lora_B seems to be all zero
+    lora_params = {
+        n: p for n, p in clinical_llama_lora.named_parameters() if "lora_B" in n
+    }
+    for n, p in lora_params.items():
+        print(n, p.sum())
+
     # Get embeddings for each text in the test split
     print("Get text representation from LLaMA")
     llama_embeddings = get_text_representation(llama, inputs)
