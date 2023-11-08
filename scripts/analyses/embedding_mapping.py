@@ -43,7 +43,7 @@ def get_text_representation(
     model, inputs, batch_size=4, embedding_pool="last", device=torch.device("cuda:0")
 ):
     embeddings = []
-    for i, name, param in enumerate(model.named_parameters()):
+    for i, (name, param) in enumerate(model.named_parameters()):
         print(i, name, param.data.size())
     model.to(device)
     model.eval()
