@@ -67,6 +67,7 @@ def get_text_representation(
             if embedding_pool == "last":
                 batch_embeddings = last_hidden_states[:, -1, :].cpu().numpy()
             embeddings.extend(batch_embeddings)
+            break
     return embeddings
 
 
@@ -142,6 +143,17 @@ def main() -> None:
     clinical_llama_lora_embeddings = get_text_representation(
         clinical_llama_lora, inputs
     )
+
+    same_embeddings = 0
+    for llama_embedding, clinical_llama_lora_embedding in zip(
+        llama_embeddings, clinical_llama_lora_embeddings
+    ):
+        if not np.array_equal(llama_embedding, clinical_llama_lora_embedding):
+            print("embeddings are not equal")
+            break
+        else:
+            same_embeddings += 1
+    print(f"{same_embeddings}/{len(llama_embeddings)} embeddings are equal")
 
     print("Prep Dataframe from LLaMA + Clinical LLaMA-LoRA")
     cols = [f"emb_{i}" for i in range(clinical_llama_lora_embeddings[0].shape[0])]
