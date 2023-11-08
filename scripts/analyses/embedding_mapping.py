@@ -48,10 +48,7 @@ def get_text_representation(
     model.to(device)
     model.eval()
     with torch.no_grad():
-        flag = 0
         for i in tqdm(range(0, len(inputs["input_ids"]), batch_size)):
-            if flag >= 50:
-                break
             batch_input_ids = torch.tensor(inputs["input_ids"][i : i + batch_size]).to(
                 device
             )
@@ -70,7 +67,6 @@ def get_text_representation(
             if embedding_pool == "last":
                 batch_embeddings = last_hidden_states[:, -1, :].cpu().numpy()
             embeddings.extend(batch_embeddings)
-            flag += 1
 
     return embeddings
 
