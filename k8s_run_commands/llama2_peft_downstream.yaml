@@ -1,5 +1,5 @@
 gpu_limit: 1
-gpu_product: NVIDIA-A100-SXM4-80GB
+gpu_product: NVIDIA-A100-SXM4-40GB
 accelerate_config: ""
 configs:
   - config_filepath: "configs/downstream_hpo_configs/context_length_512/mortality/clinical_llama2_finetune_downstream_peft.yaml"
