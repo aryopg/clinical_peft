@@ -48,7 +48,10 @@ def get_text_representation(
     model.to(device)
     model.eval()
     with torch.no_grad():
+        flag = 0
         for i in tqdm(range(0, len(inputs["input_ids"]), batch_size)):
+            if flag >= 50:
+                break
             batch_input_ids = torch.tensor(inputs["input_ids"][i : i + batch_size]).to(
                 device
             )
@@ -67,7 +70,8 @@ def get_text_representation(
             if embedding_pool == "last":
                 batch_embeddings = last_hidden_states[:, -1, :].cpu().numpy()
             embeddings.extend(batch_embeddings)
-            break
+            flag += 1
+
     return embeddings
 
 
@@ -148,10 +152,7 @@ def main() -> None:
     for llama_embedding, clinical_llama_lora_embedding in zip(
         llama_embeddings, clinical_llama_lora_embeddings
     ):
-        if not np.array_equal(llama_embedding, clinical_llama_lora_embedding):
-            print("embeddings are not equal")
-            break
-        else:
+        if np.array_equal(llama_embedding, clinical_llama_lora_embedding):
             same_embeddings += 1
     print(f"{same_embeddings}/{len(llama_embeddings)} embeddings are equal")
 
