@@ -547,6 +547,9 @@ def train(
 
             hf_repo_name = f"{hf_username}/{sweep_name}__{hyperparams}"
 
+            if configs.model_configs.downstream_peft:
+                hf_repo_name += "__downstream"
+
             huggingface_hub.create_repo(
                 hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
             )
