@@ -43,7 +43,10 @@ def get_text_representation(
     model, inputs, batch_size=4, embedding_pool="last", device=torch.device("cuda:0")
 ):
     embeddings = []
+    for name, param in model.named_parameters():
+        print(name)
     model.to(device)
+    model.eval()
     with torch.no_grad():
         for i in tqdm(range(0, len(inputs["input_ids"]), batch_size)):
             batch_input_ids = torch.tensor(inputs["input_ids"][i : i + batch_size]).to(
@@ -131,13 +134,6 @@ def main() -> None:
     clinical_llama_lora_embeddings_df["LABEL"] = dataset["test"]["label"][
         : len(clinical_llama_lora_embeddings)
     ]
-
-    # pca = PCA(n_components=2)
-    # llama_embeddings_pca = pca.fit_transform(llama_embeddings)
-    # pca = PCA(n_components=2)
-    # clinical_llama_lora_embeddings_pca = pca.fit_transform(
-    #     clinical_llama_lora_embeddings
-    # )
 
     # Create a new WandB artifact
     artifact = wandb.Artifact("llama_embeddings_df", type="dataset")
