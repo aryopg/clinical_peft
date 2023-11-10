@@ -35,6 +35,7 @@ def argument_parser():
     parser.add_argument("--pretrained_llama_path", type=str, required=True)
     parser.add_argument("--clinical_llama_lora_path", type=str)
     parser.add_argument("--downstream_llama_lora_path", type=str)
+    parser.add_argument("--random_seed", type=int, default=1234)
     args = parser.parse_args()
     return args
 
@@ -83,8 +84,20 @@ def main() -> None:
 
     wandb.init(project=wandb_project, entity=wandb_entity)
 
+    general_dataset = load_dataset("bookcorpus", split="train", streaming=True)
+    general_dataset = [batch["text"] for batch in general_dataset.take(1000)]
+    biomedical_dataset = load_dataset(
+        "datajuicer/the-pile-pubmed-abstracts-refined-by-data-juicer",
+        split="train",
+        streaming=True,
+    )
+    biomedical_dataset = [batch["text"] for batch in biomedical_dataset.take(1000)]
     # Load dataset
-    dataset = load_dataset(args.dataset_path)
+    clinical_dataset = load_dataset(args.dataset_path, split="test")["text"]
+
+    print(f"Number of General dataset: {len(general_dataset)}")
+    print(f"Number of Biomedical dataset: {len(biomedical_dataset)}")
+    print(f"Number of Clinical dataset: {len(clinical_dataset)}")
 
     # Load original LLaMA
     llama = AutoModelForCausalLM.from_pretrained(args.pretrained_llama_path)
@@ -99,7 +112,12 @@ def main() -> None:
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    text_list = dataset["test"]["text"]
+    text_list = general_dataset + biomedical_dataset + clinical_dataset
+    labels_list = (
+        ["general"] * len(general_dataset)
+        + ["biomedical"] * len(biomedical_dataset)
+        + ["clinical"] * len(clinical_dataset)
+    )
     inputs = tokenizer(
         text_list,
         padding="max_length",
@@ -117,7 +135,7 @@ def main() -> None:
     print("Prep Dataframe from LLaMA")
     cols = [f"emb_{i}" for i in range(llama_embeddings[0].shape[0])]
     llama_embeddings_df = pd.DataFrame(llama_embeddings, columns=cols)
-    llama_embeddings_df["LABEL"] = dataset["test"]["label"][: len(llama_embeddings)]
+    llama_embeddings_df["LABEL"] = labels_list[: len(llama_embeddings)]
 
     # Create a new WandB artifact
     print("Create a WandB artifact from LLaMA embedding")
@@ -157,7 +175,7 @@ def main() -> None:
     clinical_llama_lora_embeddings_df = pd.DataFrame(
         clinical_llama_lora_embeddings, columns=cols
     )
-    clinical_llama_lora_embeddings_df["LABEL"] = dataset["test"]["label"][
+    clinical_llama_lora_embeddings_df["LABEL"] = labels_list[
         : len(clinical_llama_lora_embeddings)
     ]
 
@@ -168,6 +186,44 @@ def main() -> None:
     )
     artifact.add_file("clinical_llama_lora_embeddings_df.csv")
     wandb.log_artifact(artifact)
+
+    print("Perform PCA on embeddings")
+    pca = PCA(n_components=2, random_state=args.random_seed)
+    llama_embeddings_pca = pca.fit_transform(llama_embeddings)
+    pca = PCA(n_components=2, random_state=args.random_seed)
+    clinical_llama_lora_embeddings_pca = pca.fit_transform(
+        clinical_llama_lora_embeddings
+    )
+
+    # Create a scatter plot for visualization
+    plt.figure(figsize=(12, 6))
+    plt.subplot(121)
+    plt.scatter(
+        llama_embeddings_pca[:, 0],
+        llama_embeddings_pca[:, 1],
+        c=labels_list,
+        cmap="viridis",
+    )
+    plt.title("PCA Visualization - LLaMA")
+    plt.colorbar(label="Labels")
+    plt.xlabel("PC 1")
+    plt.ylabel("PC 2")
+
+    plt.subplot(122)
+    plt.scatter(
+        clinical_llama_lora_embeddings_pca[:, 0],
+        clinical_llama_lora_embeddings_pca[:, 1],
+        c=labels_list,
+        cmap="viridis",
+    )
+    plt.title("PCA Visualization - LLaMA + Clinical LLaMA-LoRA")
+    plt.colorbar(label="Labels")
+    plt.xlabel("PC 1")
+    plt.ylabel("PC 2")
+
+    # Log the figures to wandb
+    wandb.log({"PCA Visualization - LLaMA": plt.figure(1)})
+    wandb.log({"PCA Visualization - LLaMA + Clinical LLaMA-LoRA": plt.figure(2)})
 
     # print("Log to WandB")
     # # log pandas DataFrame to W&B easily
