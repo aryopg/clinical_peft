@@ -93,7 +93,7 @@ def main() -> None:
     )
     biomedical_dataset = [batch["text"] for batch in biomedical_dataset.take(1000)]
     # Load dataset
-    clinical_dataset = load_dataset(args.dataset_path, split="test")["text"]
+    clinical_dataset = load_dataset(args.dataset_path, split="test")["text"][:1000]
 
     print(f"Number of General dataset: {len(general_dataset)}")
     print(f"Number of Biomedical dataset: {len(biomedical_dataset)}")
@@ -114,9 +114,9 @@ def main() -> None:
 
     text_list = general_dataset + biomedical_dataset + clinical_dataset
     labels_list = (
-        ["general"] * len(general_dataset)
-        + ["biomedical"] * len(biomedical_dataset)
-        + ["clinical"] * len(clinical_dataset)
+        [0] * len(general_dataset)
+        + [1] * len(biomedical_dataset)
+        + [2] * len(clinical_dataset)
     )
     inputs = tokenizer(
         text_list,
