@@ -86,11 +86,9 @@ def main() -> None:
 
     general_dataset = load_dataset("bookcorpus", split="train", streaming=True)
     general_dataset = [batch["text"] for batch in general_dataset.take(10000)]
-    biomedical_dataset = load_dataset(
-        "aryopg/mini_pubmed",
-    )[
-        "abstract"
-    ][:10000]
+    biomedical_dataset = load_dataset("aryopg/mini_pubmed", split="train")["abstract"][
+        :10000
+    ]
     # Load dataset
     clinical_dataset = load_dataset(args.dataset_path, split="test")["text"][:10000]
 
