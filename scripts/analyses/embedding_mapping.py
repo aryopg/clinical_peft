@@ -90,7 +90,7 @@ def main() -> None:
         :10000
     ]
     # Load dataset
-    clinical_dataset = load_dataset(args.dataset_path, split="test")["text"][:10000]
+    clinical_dataset = load_dataset(args.dataset_path, split="train")["text"][:10000]
 
     print(f"Number of General dataset: {len(general_dataset)}")
     print(f"Number of Biomedical dataset: {len(biomedical_dataset)}")
