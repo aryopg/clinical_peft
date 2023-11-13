@@ -82,18 +82,18 @@ def main() -> None:
     wandb_entity = os.getenv("WANDB_ENTITY", "")
     wandb_project = "clinical_peft_embedding"
 
-    wandb.init(project=wandb_project, entity=wandb_entity)
+    wandb.init(project=wandb_project, entity=wandb_entity, name=args.dataset_path)
 
     general_dataset = load_dataset("bookcorpus", split="train", streaming=True)
-    general_dataset = [batch["text"] for batch in general_dataset.take(1000)]
+    general_dataset = [batch["text"] for batch in general_dataset.take(10000)]
     biomedical_dataset = load_dataset(
-        "datajuicer/the-pile-pubmed-abstracts-refined-by-data-juicer",
+        "aryopg/mini_pubmed",
         split="train",
         streaming=True,
     )
-    biomedical_dataset = [batch["text"] for batch in biomedical_dataset.take(1000)]
+    biomedical_dataset = [batch["text"] for batch in biomedical_dataset.take(10000)]
     # Load dataset
-    clinical_dataset = load_dataset(args.dataset_path, split="test")["text"][:1000]
+    clinical_dataset = load_dataset(args.dataset_path, split="test")["text"][:10000]
 
     print(f"Number of General dataset: {len(general_dataset)}")
     print(f"Number of Biomedical dataset: {len(biomedical_dataset)}")
