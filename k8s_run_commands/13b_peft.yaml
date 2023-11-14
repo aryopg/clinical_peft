@@ -1,6 +1,7 @@
 gpu_limit: 2
 gpu_product: NVIDIA-A100-SXM4-80GB
 accelerate_config: configs/accelerate_configs/deepspeed_2gpus.yaml
+is_training: true
 configs:
   - config_filepath: "configs/mimic_pretrain_hpo_configs/mimic_iv/llama_13b_lora.yaml"
     existing_sweep_id: ""

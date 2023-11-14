@@ -26,19 +26,22 @@ def main():
         .replace("_", "-")
         for config in configs["configs"]
     ]
-    if configs["gpu_limit"] > 1:
-        accelerate_config = configs["accelerate_config"]
-        base_command = f"CUDA_LAUNCH_BLOCKING=1 accelerate launch --config_file {accelerate_config} scripts/train.py --config_filepath "
-    else:
-        base_command = "CUDA_LAUNCH_BLOCKING=1 accelerate launch --mixed_precision bf16 scripts/train.py --config_filepath "
+    if configs["is_training"]:
+        if configs["gpu_limit"] > 1:
+            accelerate_config = configs["accelerate_config"]
+            base_command = f"CUDA_LAUNCH_BLOCKING=1 accelerate launch --config_file {accelerate_config} scripts/train.py --config_filepath "
+        else:
+            base_command = "CUDA_LAUNCH_BLOCKING=1 accelerate launch --mixed_precision bf16 scripts/train.py --config_filepath "
 
-    commands = []
-    for config in configs["configs"]:
-        command = base_command + config["config_filepath"]
-        if config["existing_sweep_id"]:
-            existing_sweep_id = config["existing_sweep_id"]
-            command += f" --existing_sweep_id {existing_sweep_id}"
-        commands += [command]
+        commands = []
+        for config in configs["configs"]:
+            command = base_command + config["config_filepath"]
+            if config["existing_sweep_id"]:
+                existing_sweep_id = config["existing_sweep_id"]
+                command += f" --existing_sweep_id {existing_sweep_id}"
+            commands += [command]
+    else:
+        commands = configs["commands"]
 
     secret_env_vars = {
         "GIT_TOKEN": {"secret_name": "aryo-secrets", "key": "aryo-git-token"},
