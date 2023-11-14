@@ -102,7 +102,7 @@ def main() -> None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
     text_list = clinical_dataset["text"]
-    labels_list = clinical_dataset["labels"]
+    labels_list = clinical_dataset["label"]
     inputs = tokenizer(
         text_list,
         padding="max_length",
