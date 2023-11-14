@@ -3,8 +3,13 @@ gpu_product: NVIDIA-A100-SXM4-40GB
 accelerate_config: ""
 is_training: false
 commands:
-  - python scripts/analyses/embedding_mapping_in_domain.py --dataset_path aryopg/core-diagnosis --pretrained_llama_path aryopg/llama-7b --clinical_llama_lora_path aryopg/mimic-iv__llama-7b__512__lora__r_16__lora_alpha_32__lora_dropout_0.0
-  - python scripts/analyses/embedding_mapping_in_domain.py --dataset_path aryopg/core-procedure --pretrained_llama_path aryopg/llama-7b --clinical_llama_lora_path aryopg/mimic-iv__llama-7b__512__lora__r_16__lora_alpha_32__lora_dropout_0.0
-  - python scripts/analyses/embedding_mapping_in_domain.py --dataset_path aryopg/trec-los --pretrained_llama_path aryopg/llama-7b --clinical_llama_lora_path aryopg/mimic-iv__llama-7b__512__lora__r_16__lora_alpha_32__lora_dropout_0.0
-  - python scripts/analyses/embedding_mapping_in_domain.py --dataset_path aryopg/trec-mortality --pretrained_llama_path aryopg/llama-7b --clinical_llama_lora_path aryopg/mimic-iv__llama-7b__512__lora__r_16__lora_alpha_32__lora_dropout_0.0
-  - python scripts/analyses/embedding_mapping_in_domain.py --dataset_path aryopg/trec-pmv --pretrained_llama_path aryopg/llama-7b --clinical_llama_lora_path aryopg/mimic-iv__llama-7b__512__lora__r_16__lora_alpha_32__lora_dropout_0.0
+  - command: python scripts/analyses/embedding_mapping_in_domain.py --dataset_path aryopg/core-diagnosis --pretrained_llama_path aryopg/llama-7b --clinical_llama_lora_path aryopg/mimic-iv__llama-7b__512__lora__r_16__lora_alpha_32__lora_dropout_0.0
+    run_name: core-diagnosis
+  - command: python scripts/analyses/embedding_mapping_in_domain.py --dataset_path aryopg/core-procedure --pretrained_llama_path aryopg/llama-7b --clinical_llama_lora_path aryopg/mimic-iv__llama-7b__512__lora__r_16__lora_alpha_32__lora_dropout_0.0
+    run_name: core-procedure
+  - command: python scripts/analyses/embedding_mapping_in_domain.py --dataset_path aryopg/trec-los --pretrained_llama_path aryopg/llama-7b --clinical_llama_lora_path aryopg/mimic-iv__llama-7b__512__lora__r_16__lora_alpha_32__lora_dropout_0.0
+    run_name: trec-los
+  - command: python scripts/analyses/embedding_mapping_in_domain.py --dataset_path aryopg/trec-mortality --pretrained_llama_path aryopg/llama-7b --clinical_llama_lora_path aryopg/mimic-iv__llama-7b__512__lora__r_16__lora_alpha_32__lora_dropout_0.0
+    run_name: trec-mortality
+  - command: python scripts/analyses/embedding_mapping_in_domain.py --dataset_path aryopg/trec-pmv --pretrained_llama_path aryopg/llama-7b --clinical_llama_lora_path aryopg/mimic-iv__llama-7b__512__lora__r_16__lora_alpha_32__lora_dropout_0.0
+    run_name: trec-pmv

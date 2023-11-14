@@ -20,13 +20,13 @@ def main():
     configs = yaml.safe_load(open(args.run_configs_filepath, "r"))
 
     base_args = "git clone https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git --branch longer_sequence && cd clinical_peft && "
-    run_names = [
-        "-".join(config["config_filepath"].split("/")[-2:])
-        .replace(".yaml", "")
-        .replace("_", "-")
-        for config in configs["configs"]
-    ]
     if configs["is_training"]:
+        run_names = [
+            "-".join(config["config_filepath"].split("/")[-2:])
+            .replace(".yaml", "")
+            .replace("_", "-")
+            for config in configs["configs"]
+        ]
         if configs["gpu_limit"] > 1:
             accelerate_config = configs["accelerate_config"]
             base_command = f"CUDA_LAUNCH_BLOCKING=1 accelerate launch --config_file {accelerate_config} scripts/train.py --config_filepath "
@@ -41,7 +41,8 @@ def main():
                 command += f" --existing_sweep_id {existing_sweep_id}"
             commands += [command]
     else:
-        commands = configs["commands"]
+        run_names = [f"viz-{command['run_name']}" for command in configs["commands"]]
+        commands = [command["command"] for command in configs["commands"]]
 
     secret_env_vars = {
         "GIT_TOKEN": {"secret_name": "aryo-secrets", "key": "aryo-git-token"},
