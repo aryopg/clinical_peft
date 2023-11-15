@@ -21,12 +21,15 @@ def main():
 
     base_args = "git clone https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git --branch longer_sequence && cd clinical_peft && "
     if configs["is_training"]:
-        run_names = [
-            "-".join(config["config_filepath"].split("/")[-2:])
-            .replace(".yaml", "")
-            .replace("_", "-")
-            for config in configs["configs"]
-        ]
+        run_names = []
+        for config in configs["configs"]:
+            run_name_split = config["config_filepath"].split("/")[-2:]
+            run_name = (
+                run_name_split[0][:4]
+                + "-"
+                + run_name_split[1].replace(".yaml", "").replace("_", "-")
+            )
+            run_names += [run_name]
         if configs["gpu_limit"] > 1:
             accelerate_config = configs["accelerate_config"]
             base_command = f"CUDA_LAUNCH_BLOCKING=1 accelerate launch --config_file {accelerate_config} scripts/train.py --config_filepath "
