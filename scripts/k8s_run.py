@@ -11,6 +11,7 @@ from kubejobs.jobs import KubernetesJob
 def argument_parser():
     parser = argparse.ArgumentParser(description="Clinical PEFT")
     parser.add_argument("--run_configs_filepath", type=str, required=True)
+    parser.add_argument("--user_email", type=str, required=True)
     args = parser.parse_args()
     return args
 
@@ -85,6 +86,7 @@ def main():
             command=["/bin/bash", "-c", "--"],
             args=[base_args + command],
             secret_env_vars=secret_env_vars,
+            user_email=args.user_email,
         )
 
         # Run the Job on the Kubernetes cluster
