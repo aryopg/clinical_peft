@@ -1,0 +1,15 @@
+gpu_limit: 1
+gpu_product: NVIDIA-A100-SXM4-80GB
+accelerate_config: ""
+is_training: true
+configs:
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/mortality/clinical_llama_baseline.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/los/clinical_llama_baseline.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/pmv/clinical_llama_baseline.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/diagnosis/clinical_llama_baseline.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/procedure/clinical_llama_baseline.yaml"
+    existing_sweep_id: ""
