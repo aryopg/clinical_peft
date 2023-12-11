@@ -14,7 +14,7 @@ model_configs:
 training_configs:
   dataset_paths:
     - aryopg/trec-pmv
-  multilabel: true
+  multilabel: false
   random_seed: 1234
   device: 0
   num_process: 8
