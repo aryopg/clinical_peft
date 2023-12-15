@@ -7,7 +7,6 @@ This repository contains the code for domain adaptation fine-tuning, downstream 
 
 <!-- omit in toc -->
 ## Table of Contents
-- [⚡ Abstract](#-abstract)
 - [🛠️ Setup](#️-setup)
   - [Cloning the codebase](#cloning-the-codebase)
   - [Python packages](#python-packages)
@@ -29,7 +28,7 @@ This repository contains the code for domain adaptation fine-tuning, downstream 
     - [Baseline models + LoRA](#baseline-models--lora)
 
 
-## ⚡ Abstract
+<!-- ## ⚡ Abstract
 
 Adapting pretrained language models to novel domains, such as clinical applications, traditionally involves retraining their entire parameters.
 However, this approach is increasingly proven to be impractical owing to the substantial computational requirements associated with training such large language models.
@@ -39,7 +38,7 @@ Clinical LLaMA-LoRA is trained using clinical notes obtained from the MIMIC-IV d
 Additionally, we propose a two-step PEFT framework which fuses Clinical LLaMA-LoRA with Downstream LLaMA-LoRA, another PEFT adapter specialised for downstream tasks.
 We evaluate this framework on multiple clinical outcome prediction benchmark datasets, comparing it to clinically trained language models.
 Our proposed framework achieves the state-of-the-art AUROC score averaged across all clinical downstream tasks.
-We observe pronounced improvements of 6-9\% AUROC score in the extreme multilabel classification tasks, such as diagnoses and procedures classification.
+We observe pronounced improvements of 6-9\% AUROC score in the extreme multilabel classification tasks, such as diagnoses and procedures classification. -->
 
 <img src="docs/assets/peft.png">
 
