@@ -153,24 +153,14 @@ accelerate launch --mixed_precision=fp16 scripts/train.py --config_filepath conf
 #### Baseline models
 
 ```
-accelerate launch --mixed_precision=fp16 scripts/train.py --config_filepath configs/downstream_hpo_configs/***<TASK_OF_INTEREST>***/bioclinicalbert_baseline.yaml
-accelerate launch --mixed_precision=fp16 scripts/train.py --config_filepath configs/downstream_hpo_configs/***<TASK_OF_INTEREST>***/bluebert_baseline.yaml
-accelerate launch --mixed_precision=fp16 scripts/train.py --config_filepath configs/downstream_hpo_configs/***<TASK_OF_INTEREST>***/core_baseline.yaml
-accelerate launch --mixed_precision=fp16 scripts/train.py --config_filepath configs/downstream_hpo_configs/***<TASK_OF_INTEREST>***/umlsbert_baseline.yaml
+accelerate launch --mixed_precision=fp16 scripts/train.py --config_filepath configs/context_length_512/downstream_hpo_configs/***<TASK_OF_INTEREST>***/bioclinicalbert_baseline.yaml
+accelerate launch --mixed_precision=fp16 scripts/train.py --config_filepath configs/context_length_512/downstream_hpo_configs/***<TASK_OF_INTEREST>***/bluebert_baseline.yaml
+accelerate launch --mixed_precision=fp16 scripts/train.py --config_filepath configs/context_length_512/downstream_hpo_configs/***<TASK_OF_INTEREST>***/core_baseline.yaml
+accelerate launch --mixed_precision=fp16 scripts/train.py --config_filepath configs/context_length_512/downstream_hpo_configs/***<TASK_OF_INTEREST>***/umlsbert_baseline.yaml
 ```
 
 #### Clinical LLaMA-LoRA
 
-## ⚖️ Results
-
-### Domain adaptation fine-tuning
-
-<img src="docs/assets/domain_adaptation_results.png">
-
-### Downstream fine-tuning
-
-#### Main results
-<img src="docs/assets/downstream_results_main.png">
-
-#### Baseline models + LoRA
-<img src="docs/assets/downstream_results_baselines.png">
+```
+accelerate launch --mixed_precision=fp16 scripts/train.py --config_filepath configs/context_length_512/downstream_hpo_configs/***<TASK_OF_INTEREST>***/clinical_llama_finetune_downstream_peft.yaml
+```
