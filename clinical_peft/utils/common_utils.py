@@ -6,6 +6,7 @@ from typing import Optional, Tuple
 import numpy as np
 import torch
 import yaml
+from pynvml import nvmlDeviceGetHandleByIndex, nvmlDeviceGetMemoryInfo, nvmlInit
 from torch import nn
 from transformers import set_seed
 
@@ -133,3 +134,10 @@ def delete_files_in_directory(directory: str):
                 os.remove(file_path)
         except Exception as e:
             print(f"Failed to delete {file_path} due to {e}")
+
+
+def print_gpu_utilization():
+    nvmlInit()
+    handle = nvmlDeviceGetHandleByIndex(0)
+    info = nvmlDeviceGetMemoryInfo(handle)
+    return info.used // 1024**2

@@ -182,6 +182,9 @@ def train(
                     torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
                 )
 
+        gpu_utilisation = print_gpu_utilization()
+        accelerator.print(f"GPU memory occupied: {gpu_utilisation} MB.")
+
         class_weights = None
         performance_metrics = None
         multi_class = None
@@ -244,6 +247,9 @@ def train(
                                 param.requires_grad = True
                             else:
                                 param.requires_grad = False
+
+        gpu_utilisation = print_gpu_utilization()
+        accelerator.print(f"GPU memory occupied: {gpu_utilisation} MB.")
 
         # optimizer
         for name, param in model.named_parameters():
