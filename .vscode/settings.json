@@ -8,5 +8,9 @@
     },
  
     "python.formatting.provider": "none",
-    "isort.args": ["--profile", "black"]
+    "isort.args": [
+        "--profile",
+        "black"
+    ],
+    "editor.acceptSuggestionOnEnter": "on"
 }

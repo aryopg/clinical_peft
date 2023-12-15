@@ -1,0 +1,28 @@
+model_configs:
+  peft_type: null
+  task_type: "seq_cls"
+  model_name_or_path: "meta-llama/Llama-2-7b-hf"
+  pretrained_peft_name_or_path: "aryopg/mimic-iv__Llama-2-7b-hf__512__lora__r_16__lora_alpha_32__lora_dropout_0.0"
+  pretrained_peft_fine_tune: true
+  downstream_peft: false
+  peft_hyperparameters: null
+  model_hyperparameters:
+    learning_rate: 0.00005
+    warmup_steps_ratio: 0.06
+    max_seq_len: 512
+    gradient_accumulation_steps: 32
+training_configs:
+  dataset_paths:
+    - aryopg/trec-mortality
+  random_seed: 1234
+  device: 0
+  num_process: 8
+  test_size: 0.1
+  epochs: 10
+  steps: 1000000
+  batch_size: 1
+  log_steps: 1000000
+  eval_steps: 1000000  # Only evaluate at the end
+  checkpoint_steps: 1000000  # Only checkpoint at the end
+  max_sweep_count: 1
+  outputs_dir: "outputs"

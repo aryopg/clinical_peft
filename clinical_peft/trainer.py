@@ -5,14 +5,18 @@ from typing import Dict, List, Optional
 
 import evaluate
 import huggingface_hub
+import numpy as np
+import pandas as pd
 import torch
 from accelerate import Accelerator
 from accelerate.tracking import WandBTracker
 from accelerate.utils import find_executable_batch_size
 from datasets import DatasetDict, load_dataset
 from evaluate import EvaluationModule
+from huggingface_hub import HfApi
 from peft import PeftConfig, PeftModel, get_peft_model
 from torch.nn import functional as F
+from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import (
@@ -38,7 +42,7 @@ from .constants import (
     PEFT_CONFIGS,
 )
 from .models.llama import LlamaForQuestionAnswering, LlamaForTokenClassification
-from .utils.common_utils import print_gpu_utilization, setup_random_seed
+from .utils import common_utils
 from .utils.dataset_utils import preprocess_dataset
 from .utils.model_utils import load_peft_config, set_class_weights, set_metrics
 
@@ -101,12 +105,20 @@ def train(
     tokenizer: PreTrainedTokenizer,
     dataset: DatasetDict,
     sweep_name: str = None,
+    outputs_dir: str = None,
 ) -> None:
-    wandb_tracker_config = wandb_tracker.config if wandb_tracker is not None else None
+    common_utils.setup_random_seed(configs.training_configs.random_seed)
+
+    peft_model_configs = configs.model_configs.peft_hyperparameters
+    if wandb_tracker is not None:
+        if len(wandb_tracker.config.keys()) > 0:
+            peft_model_configs = wandb_tracker.config
 
     accelerator.print("Loading model:")
     accelerator.print(configs.model_configs.dict())
-    accelerator.print(wandb_tracker_config)
+    accelerator.print(peft_model_configs)
+
+    dataset_name = configs.training_configs.dataset_paths[0].split("/")[-1]
 
     @find_executable_batch_size(starting_batch_size=configs.training_configs.batch_size)
     def inner_training_loop(max_batch_size):
@@ -127,9 +139,7 @@ def train(
                 return_dict=True,
             )
         elif configs.model_configs.task_type == TaskType.seq_cls:
-            labels_map = LABELS_MAP[
-                configs.training_configs.dataset_paths[0].split("/")[-1]
-            ]
+            labels_map = LABELS_MAP[dataset_name]
 
             model = AutoModelForSequenceClassification.from_pretrained(
                 configs.model_configs.model_name_or_path,
@@ -139,7 +149,7 @@ def train(
                 torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
             )
         elif configs.model_configs.task_type == TaskType.question_ans:
-            if "llama" in configs.model_configs.model_name_or_path:
+            if "llama" in configs.model_configs.model_name_or_path.lower():
                 model = LlamaForQuestionAnswering.from_pretrained(
                     configs.model_configs.model_name_or_path,
                     return_dict=True,
@@ -152,10 +162,8 @@ def train(
                     torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
                 )
         elif configs.model_configs.task_type == TaskType.token_cls:
-            labels_map = IOB_NER_MAP[
-                configs.training_configs.dataset_paths[0].split("/")[-1]
-            ]
-            if "llama" in configs.model_configs.model_name_or_path:
+            labels_map = IOB_NER_MAP[dataset_name]
+            if "llama" in configs.model_configs.model_name_or_path.lower():
                 model = LlamaForTokenClassification.from_pretrained(
                     configs.model_configs.model_name_or_path,
                     num_labels=len(labels_map),
@@ -184,7 +192,7 @@ def train(
             # Setup class weighting
             if not configs.training_configs.multilabel:
                 class_weights = set_class_weights(
-                    train_dataloader.dataset["labels"], labels_map
+                    train_dataloader.dataset["labels"], labels_map, use_bf16
                 ).to(accelerator.device)
 
             # Setup performance metrics
@@ -207,7 +215,7 @@ def train(
                 downstream_peft_config = PEFT_CONFIGS[pretrained_peft_type.lower()](
                     task_type=model.peft_config["default"].task_type,
                     inference_mode=False,
-                    **wandb_tracker_config,
+                    **peft_model_configs,
                 )
 
                 model.add_adapter("lora_downstream", downstream_peft_config)
@@ -216,17 +224,13 @@ def train(
                 if ".score" in name or ".classifier" in name:
                     param.requires_grad = True
 
-            for name, param in model.named_parameters():
-                if param.requires_grad:
-                    print(name)
-
             model.print_trainable_parameters()
         else:
             if configs.model_configs.peft_type:
                 peft_config: PeftConfig = load_peft_config(
                     configs.model_configs.peft_type,
                     configs.model_configs.task_type,
-                    wandb_tracker_config,
+                    peft_model_configs,
                 )
 
                 accelerator.print(peft_config)
@@ -248,7 +252,10 @@ def train(
         accelerator.print(f"GPU memory occupied: {gpu_utilisation} MB.")
 
         # optimizer
-        optimizer = torch.optim.AdamW(
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                print(name)
+        optimizer = AdamW(
             params=[param for param in model.parameters() if param.requires_grad],
             lr=configs.model_configs.model_hyperparameters.learning_rate,
         )
@@ -289,9 +296,7 @@ def train(
         if torch.cuda.device_count() > 1:
             accelerator.sync_gradients = False
 
-        gpu_utilisation = print_gpu_utilization()
-        accelerator.print(f"GPU memory occupied: {gpu_utilisation} MB.")
-
+        prev_dev_loss = 10000
         for epoch in range(num_epochs):
             accelerator.print(f" >>> Epoch {epoch + 1} / {num_epochs}")
             model.train()
@@ -304,13 +309,21 @@ def train(
                         batch = {
                             k: v
                             for k, v in batch.items()
-                            if k not in ["token_type_ids", "offset_mapping", "labels"]
+                            if k
+                            not in [
+                                "token_type_ids",
+                                "offset_mapping",
+                                "labels",
+                                "overflow_to_sample_mapping",
+                            ]
                         }
 
                         if class_weights is not None:
                             outputs = model(**batch)
                             loss = F.cross_entropy(
-                                outputs.logits, labels, weight=class_weights
+                                outputs.logits.view(-1, len(labels_map)),
+                                labels.view(-1),
+                                weight=class_weights,
                             )
                         else:
                             outputs = model(**batch, labels=labels)
@@ -341,6 +354,15 @@ def train(
 
                     if (train_step + 1) >= num_training_steps:
                         break
+                if (train_step + 1) % configs.training_configs.checkpoint_steps == 0:
+                    unwrapped_model = accelerator.unwrap_model(model)
+                    unwrapped_model.save_pretrained(
+                        os.path.join(outputs_dir, "checkpoint"),
+                        is_main_process=accelerator.is_main_process,
+                        save_function=accelerator.save,
+                    )
+
+                    # accelerator.save_state(os.path.join(outputs_dir, "checkpoint"))
             # For classification tasks, log metrics at the end of an epoch
             if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
                 accelerator.log(
@@ -348,7 +370,13 @@ def train(
                     step=epoch,
                 )
 
-                train_metrics = test(
+                (
+                    train_metrics,
+                    train_logits,
+                    train_prediction_scores,
+                    train_predictions,
+                    train_references,
+                ) = test(
                     accelerator,
                     model,
                     train_dataloader,
@@ -358,9 +386,16 @@ def train(
                     multi_class=multi_class,
                     split="train",
                     label_list=list(labels_map.keys()),
+                    dataset_name=dataset_name,
                 )
 
-                val_metrics = test(
+                (
+                    val_metrics,
+                    val_logits,
+                    val_prediction_scores,
+                    val_predictions,
+                    val_references,
+                ) = test(
                     accelerator,
                     model,
                     val_dataloader,
@@ -370,6 +405,7 @@ def train(
                     multi_class=multi_class,
                     split="val",
                     label_list=list(labels_map.keys()),
+                    dataset_name=dataset_name,
                 )
                 train_metrics_log = " - ".join(
                     [
@@ -391,8 +427,30 @@ def train(
                     step=epoch,
                 )
 
-        # Evaluate on test data
-        test_metrics = test(
+                if val_metrics["val_loss"] < prev_dev_loss:
+                    prev_dev_loss = val_metrics["val_loss"]
+                    torch.save(
+                        model.state_dict(),
+                        os.path.join(outputs_dir, "checkpoint", "best_model.pt"),
+                    )
+
+                accelerator.wait_for_everyone()
+
+        # For classification tasks, log metrics at the end of an epoch
+        if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
+            # Evaluate on test data
+            model.load_state_dict(
+                torch.load(os.path.join(outputs_dir, "checkpoint", "best_model.pt"))
+            )
+            accelerator.wait_for_everyone()
+
+        (
+            test_metrics,
+            test_logits,
+            test_prediction_scores,
+            test_predictions,
+            test_references,
+        ) = test(
             accelerator,
             model,
             test_dataloader,
@@ -401,8 +459,70 @@ def train(
             multi_label=configs.training_configs.multilabel,
             multi_class=multi_class,
             split="test",
-            label_list=list(labels_map.keys()),
+            label_list=list(labels_map.keys()) if labels_map else [],
+            dataset_name=dataset_name,
         )
+
+        # For classification tasks, log predictions at the end of training
+        if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
+            train_df = pd.DataFrame(
+                {
+                    "predictions": train_predictions,
+                    "prediction_scores": train_prediction_scores,
+                    "references": train_references,
+                }
+            )
+            val_df = pd.DataFrame(
+                {
+                    "predictions": val_predictions,
+                    "prediction_scores": val_prediction_scores,
+                    "references": val_references,
+                }
+            )
+            test_df = pd.DataFrame(
+                {
+                    "predictions": test_predictions,
+                    "prediction_scores": test_prediction_scores,
+                    "references": test_references,
+                }
+            )
+
+            train_prediction_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "train_prediction.csv"
+            )
+            val_prediction_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "val_prediction.csv"
+            )
+            test_prediction_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "test_prediction.csv"
+            )
+
+            train_df.to_csv(train_prediction_filepath, index=False)
+            val_df.to_csv(val_prediction_filepath, index=False)
+            test_df.to_csv(test_prediction_filepath, index=False)
+
+            train_logits_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "train_logits.npy"
+            )
+            val_logits_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "val_logits.npy"
+            )
+            test_logits_filepath = os.path.join(
+                configs.training_configs.outputs_dir, "test_logits.npy"
+            )
+
+            np.save(train_logits_filepath, train_logits)
+            np.save(val_logits_filepath, val_logits)
+            np.save(test_logits_filepath, test_logits)
+
+            wandb_tracker.save(train_prediction_filepath)
+            wandb_tracker.save(val_prediction_filepath)
+            wandb_tracker.save(test_prediction_filepath)
+
+            wandb_tracker.save(train_logits_filepath)
+            wandb_tracker.save(val_logits_filepath)
+            wandb_tracker.save(test_logits_filepath)
+
         metrics_log = " - ".join(
             [
                 f"{metric_name}: {metric_value}"
@@ -414,25 +534,45 @@ def train(
 
         accelerator.wait_for_everyone()
 
-        hf_username = os.getenv("HF_USERNAME")
-        hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
-        hyperparams = []
-        for key, value in wandb_tracker_config.items():
-            hyperparams += [f"{key}_{value}"]
-        hyperparams = "__".join(hyperparams)
-
-        hf_repo_name = f"{hf_username}/{sweep_name}__{hyperparams}"
-
-        huggingface_hub.create_repo(
-            hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
-        )
-        model.push_to_hub(
-            hf_repo_name,
-            state_dict=accelerator.get_state_dict(model),
-            private=True,
-            use_auth_token=hf_upload_token,
+        # accelerator.save_state(os.path.join(outputs_dir, "checkpoint"))
+        unwrapped_model = accelerator.unwrap_model(model)
+        unwrapped_model.save_pretrained(
+            os.path.join(outputs_dir, "checkpoint"),
+            is_main_process=accelerator.is_main_process,
+            save_function=accelerator.save,
         )
 
+        if accelerator.is_main_process:
+            hf_username = os.getenv("HF_USERNAME")
+            hf_upload_token = os.getenv("HF_UPLOAD_TOKEN")
+            hyperparams = []
+            if peft_model_configs:
+                for key, value in peft_model_configs.items():
+                    hyperparams += [f"{key}_{value}"]
+            hyperparams = "__".join(hyperparams)
+
+            hf_repo_name = f"{hf_username}/{sweep_name}__{hyperparams}"
+
+            if configs.model_configs.downstream_peft:
+                hf_repo_name += "__downstream"
+
+            huggingface_hub.create_repo(
+                hf_repo_name, private=True, token=hf_upload_token, repo_type="model"
+            )
+            # model.push_to_hub(
+            #     hf_repo_name,
+            #     state_dict=accelerator.get_state_dict(model),
+            #     private=True,
+            #     use_auth_token=hf_upload_token,
+            # )
+            api = HfApi(token=hf_upload_token)
+            api.upload_folder(
+                folder_path=os.path.join(outputs_dir, "checkpoint"),
+                repo_id=hf_repo_name,
+                repo_type="model",
+                multi_commits=True,
+                multi_commits_verbose=True,
+            )
         accelerator.wait_for_everyone()
 
         # cleanup and sleep just to be sure the cuda memory is freed
@@ -454,14 +594,24 @@ def test(
     multi_class: Optional[str] = None,
     split: str = "val",
     label_list: list = [],
+    dataset_name: str = "",
 ) -> dict:
+    all_logits = []
+    all_predictions = []
+    all_prediction_scores = []
+    all_references = []
+
+    if task == TaskType.token_cls:
+        grouped_labels_list = list(LABELS_MAP[dataset_name].keys())
+
     model.eval()
     total_loss = 0
     for eval_step, batch in enumerate(tqdm(dataloader)):
         batch = {
             k: v
             for k, v in batch.items()
-            if k not in ["token_type_ids", "offset_mapping"]
+            if k
+            not in ["token_type_ids", "offset_mapping", "overflow_to_sample_mapping"]
         }
         with torch.no_grad():
             outputs = model(**batch)
@@ -470,39 +620,52 @@ def test(
         total_loss += loss.detach().float()
 
         if task == TaskType.seq_cls:
-            prediction_scores = F.softmax(outputs.logits, dim=1)
+            output_logits = outputs.logits.to(torch.float32)
+            prediction_scores = F.softmax(output_logits, dim=1)
             if multi_label:
-                probs = F.sigmoid(outputs.logits)
+                probs = F.sigmoid(output_logits)
                 predictions = torch.where(probs >= 0.5, 1.0, 0.0)
             else:
-                predictions = outputs.logits.argmax(dim=-1)
+                predictions = output_logits.argmax(dim=-1)
             if not multi_class and not multi_label:
                 prediction_scores = prediction_scores[:, -1]
             references = batch["labels"]
             predictions, prediction_scores, references = accelerator.gather(
                 (predictions, prediction_scores, batch["labels"])
             )
-
+            all_logits += [output_logits]
+            all_prediction_scores += prediction_scores.tolist()
+            all_predictions += predictions.tolist()
+            all_references += references.tolist()
             for metric_name, metric in metrics.items():
                 if metric is None:
                     continue
-                if metric_name == "roc_auc":
+                if metric_name in ["roc_auc", "auprc"]:
                     metric.add_batch(
-                        prediction_scores=prediction_scores, references=references
+                        prediction_scores=prediction_scores,
+                        references=references,
                     )
                 elif metric_name.startswith("f1_"):
                     metric.add_batch(predictions=predictions, references=references)
         elif task == TaskType.token_cls:
-            predictions = outputs.logits.argmax(dim=-1)
+            output_logits = outputs.logits.to(torch.float32)
+            predictions = output_logits.argmax(dim=-1)
             predictions, references = accelerator.gather((predictions, batch["labels"]))
-            true_predictions = [
-                [label_list[p] for (p, l) in zip(prediction, label) if l != -100]
-                for prediction, label in zip(predictions, references)
-            ]
-            true_labels = [
-                [label_list[l] for (p, l) in zip(prediction, label) if l != -100]
-                for prediction, label in zip(predictions, references)
-            ]
+
+            true_predictions, true_labels = [], []
+            for prediction, label in zip(predictions, references):
+                true_prediction, true_label = [], []
+                for p, l in zip(prediction, label):
+                    if l != -100:
+                        true_prediction += [label_list[p]]
+                        true_label += [label_list[l]]
+                true_predictions += [true_prediction]
+                true_labels += [true_label]
+
+            all_logits += [output_logits]
+            all_prediction_scores += [None] * len(true_predictions)
+            all_predictions += true_predictions
+            all_references += true_labels
 
             metrics["seqeval"].add_batch(
                 predictions=true_predictions, references=true_labels
@@ -524,6 +687,8 @@ def test(
                 eval_metrics[f"{split}_{metric_name}"] = metric.compute(
                     multi_class=multi_class
                 )["roc_auc"]
+            if metric_name == "auprc":
+                eval_metrics[f"{split}_{metric_name}"] = metric.compute()["auprc"]
             elif metric_name == "f1_micro":
                 eval_metrics[f"{split}_{metric_name}"] = metric.compute(
                     average="micro"
@@ -533,13 +698,25 @@ def test(
                     average="macro"
                 )["f1"]
             elif metric_name == "seqeval":
-                ner_metrics = metric.compute(scheme="IOB2")
+                # ner_metrics = metric.compute(scheme="IOB2")
+                ner_metrics = metric.compute()
                 eval_metrics[f"{split}_precision"] = ner_metrics["overall_precision"]
                 eval_metrics[f"{split}_recall"] = ner_metrics["overall_recall"]
                 eval_metrics[f"{split}_f1"] = ner_metrics["overall_f1"]
                 eval_metrics[f"{split}_accuracy"] = ner_metrics["overall_accuracy"]
+                for label_name in grouped_labels_list:
+                    eval_metrics[f"{split}_{label_name}_f1"] = ner_metrics[label_name][
+                        "f1"
+                    ]
 
-    return eval_metrics
+        all_logits = torch.cat(all_logits).cpu().numpy()
+    return (
+        eval_metrics,
+        all_logits,
+        all_prediction_scores,
+        all_predictions,
+        all_references,
+    )
 
 
 def run(
@@ -550,7 +727,7 @@ def run(
     sweep_name: str,
     outputs_dir: str,
 ) -> None:
-    setup_random_seed(configs.training_configs.random_seed)
+    common_utils.setup_random_seed(configs.training_configs.random_seed)
 
     # Initialise tracker
     wandb_tracker = None
@@ -578,12 +755,30 @@ def run(
         padding_side = "left"
     else:
         padding_side = "right"
-    tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
-        configs.model_configs.model_name_or_path, padding_side=padding_side
-    )
 
     # TODO: PMC-LLaMA doesn't specify these special characters
-    if "PMC_LLAMA" in configs.model_configs.model_name_or_path:
+    if (
+        "pmc_llama" in configs.model_configs.model_name_or_path.lower()
+        or "medllama" in configs.model_configs.model_name_or_path.lower()
+    ):
+        tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
+            configs.model_configs.model_name_or_path,
+            padding_side=padding_side,
+            unk_token=LLAMA_SPECIAL_CHARACTERS["unk"],
+            bos_token=LLAMA_SPECIAL_CHARACTERS["bos"],
+            pad_token=LLAMA_SPECIAL_CHARACTERS["pad"],
+            eos_token=LLAMA_SPECIAL_CHARACTERS["eos"],
+        )
+    else:
+        tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
+            configs.model_configs.model_name_or_path, padding_side=padding_side
+        )
+
+    # TODO: PMC-LLaMA doesn't specify these special characters
+    if (
+        "pmc_llama" in configs.model_configs.model_name_or_path.lower()
+        or "medllama" in configs.model_configs.model_name_or_path.lower()
+    ):
         for special_char in ["unk", "bos", "pad", "eos"]:
             setattr(
                 tokenizer,
@@ -614,7 +809,7 @@ def run(
         tokenizer,
         dataset,
         sweep_name,
-        # outputs_dir,
+        outputs_dir,
     )
 
     # cleanup and sleep just to be sure the cuda memory is freed

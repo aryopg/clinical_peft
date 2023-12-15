@@ -12,6 +12,7 @@ load_dotenv("env/.env")
 
 import huggingface_hub
 import torch
+import torch.distributed as dist
 from datasets import load_dataset
 from pynvml import *
 from torch.utils.data import DataLoader
@@ -44,7 +45,15 @@ def print_gpu_utilization():
 
 
 def main() -> None:
-    max_batch_size = 32
+    try:
+        dist.init_process_group(
+            backend="nccl",
+            init_method="env://",
+            timeout=datetime.timedelta(seconds=100000000),
+        )
+    except ValueError:
+        pass
+
     model_path = "aryopg/llama-7b"
 
     huggingface_hub.login(token=os.getenv("HF_DOWNLOAD_TOKEN", ""))
@@ -80,14 +89,7 @@ def main() -> None:
         gradient_accumulation_steps=10,
         evaluation_strategy="epoch",
         save_strategy="epoch",
-        num_train_epochs=5,
-        # fp16=True,
-        # fsdp="full_shard",
-        # fsdp_config={
-        #     "fsdp_transformer_layer_cls_to_wrap": "LlamaDecoderLayer",
-        #     "fsdp_backward_prefetch": "backward_pre",
-        #     "fsdp_forward_prefetch": True,
-        # },
+        num_train_epochs=1,
     )
 
     trainer = Trainer(

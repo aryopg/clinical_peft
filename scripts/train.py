@@ -69,41 +69,57 @@ def main() -> None:
             model_name += "_downstream_peft"
 
     if configs.model_configs.peft_hyperparameters:
-        # Start sweep
-        sweep_configuration = configs.model_configs.peft_hyperparameters
-        sweep_name = f"{dataset_name}__{model_name}__{configs.model_configs.peft_type}"
-        sweep_configuration["name"] = sweep_name
+        if (
+            "method" in configs.model_configs.peft_hyperparameters
+            and "metric" in configs.model_configs.peft_hyperparameters
+            and "parameters" in configs.model_configs.peft_hyperparameters
+        ):
+            # Start sweep
+            sweep_configuration = configs.model_configs.peft_hyperparameters
+            sweep_name = f"{dataset_name}__{model_name}__{configs.model_configs.model_hyperparameters.max_seq_len}__{configs.model_configs.peft_type}"
+            sweep_configuration["name"] = sweep_name
 
-        if len(args.existing_sweep_id) > 0:
-            sweep_id = args.existing_sweep_id
-        else:
-            sweep_id = wandb.sweep(
-                sweep=sweep_configuration,
+            if len(args.existing_sweep_id) > 0:
+                sweep_id = args.existing_sweep_id
+            else:
+                sweep_id = wandb.sweep(
+                    sweep=sweep_configuration,
+                    entity=wandb_entity,
+                    project=wandb_project,
+                )
+
+            accelerator = Accelerator(
+                gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
+                log_with="wandb",
+            )
+            wandb.agent(
+                sweep_id,
+                function=functools.partial(
+                    run,
+                    accelerator,
+                    configs,
+                    wandb_entity,
+                    wandb_project,
+                    sweep_name,
+                    outputs_dir,
+                ),
                 entity=wandb_entity,
                 project=wandb_project,
+                count=configs.training_configs.max_sweep_count,
+            )
+        else:
+            run_name = f"{dataset_name}__{model_name}__{configs.model_configs.model_hyperparameters.max_seq_len}__{configs.model_configs.peft_type}"
+
+            accelerator = Accelerator(
+                gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
+                log_with="wandb",
             )
 
-        accelerator = Accelerator(
-            gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
-            log_with="wandb",
-        )
-        wandb.agent(
-            sweep_id,
-            function=functools.partial(
-                run,
-                accelerator,
-                configs,
-                wandb_entity,
-                wandb_project,
-                sweep_name,
-                outputs_dir,
-            ),
-            entity=wandb_entity,
-            project=wandb_project,
-            count=configs.training_configs.max_sweep_count,
-        )
+            run(
+                accelerator, configs, wandb_entity, wandb_project, run_name, outputs_dir
+            )
     else:
-        run_name = f"{dataset_name}__{model_name}__baseline"
+        run_name = f"{dataset_name}__{model_name}__{configs.model_configs.model_hyperparameters.max_seq_len}__baseline"
 
         accelerator = Accelerator(
             gradient_accumulation_steps=configs.model_configs.model_hyperparameters.gradient_accumulation_steps,
