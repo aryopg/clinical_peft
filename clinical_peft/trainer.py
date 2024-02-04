@@ -182,8 +182,8 @@ def train(
                     torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
                 )
 
-        gpu_utilisation = print_gpu_utilization()
-        accelerator.print(f"GPU memory occupied: {gpu_utilisation} MB.")
+        # gpu_utilisation = print_gpu_utilization()
+        # accelerator.print(f"GPU memory occupied: {gpu_utilisation} MB.")
 
         class_weights = None
         performance_metrics = None
@@ -241,15 +241,10 @@ def train(
                 if configs.model_configs.task_type == TaskType.seq_cls:
                     if "llama" in configs.model_configs.model_name_or_path.lower():
                         for name, param in model.named_parameters():
-                            if name.startswith("classifier") or name.startswith(
-                                "score"
-                            ):
-                                param.requires_grad = True
-                            else:
-                                param.requires_grad = False
+                            param.requires_grad = True
 
-        gpu_utilisation = print_gpu_utilization()
-        accelerator.print(f"GPU memory occupied: {gpu_utilisation} MB.")
+        # gpu_utilisation = print_gpu_utilization()
+        # accelerator.print(f"GPU memory occupied: {gpu_utilisation} MB.")
 
         # optimizer
         for name, param in model.named_parameters():
@@ -463,65 +458,65 @@ def train(
             dataset_name=dataset_name,
         )
 
-        # For classification tasks, log predictions at the end of training
-        if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
-            train_df = pd.DataFrame(
-                {
-                    "predictions": train_predictions,
-                    "prediction_scores": train_prediction_scores,
-                    "references": train_references,
-                }
-            )
-            val_df = pd.DataFrame(
-                {
-                    "predictions": val_predictions,
-                    "prediction_scores": val_prediction_scores,
-                    "references": val_references,
-                }
-            )
-            test_df = pd.DataFrame(
-                {
-                    "predictions": test_predictions,
-                    "prediction_scores": test_prediction_scores,
-                    "references": test_references,
-                }
-            )
+        # # For classification tasks, log predictions at the end of training
+        # if configs.model_configs.task_type in ["seq_cls", "token_cls"]:
+        #     train_df = pd.DataFrame(
+        #         {
+        #             "predictions": train_predictions,
+        #             "prediction_scores": train_prediction_scores,
+        #             "references": train_references,
+        #         }
+        #     )
+        #     val_df = pd.DataFrame(
+        #         {
+        #             "predictions": val_predictions,
+        #             "prediction_scores": val_prediction_scores,
+        #             "references": val_references,
+        #         }
+        #     )
+        #     test_df = pd.DataFrame(
+        #         {
+        #             "predictions": test_predictions,
+        #             "prediction_scores": test_prediction_scores,
+        #             "references": test_references,
+        #         }
+        #     )
 
-            train_prediction_filepath = os.path.join(
-                configs.training_configs.outputs_dir, "train_prediction.csv"
-            )
-            val_prediction_filepath = os.path.join(
-                configs.training_configs.outputs_dir, "val_prediction.csv"
-            )
-            test_prediction_filepath = os.path.join(
-                configs.training_configs.outputs_dir, "test_prediction.csv"
-            )
+        #     train_prediction_filepath = os.path.join(
+        #         configs.training_configs.outputs_dir, "train_prediction.csv"
+        #     )
+        #     val_prediction_filepath = os.path.join(
+        #         configs.training_configs.outputs_dir, "val_prediction.csv"
+        #     )
+        #     test_prediction_filepath = os.path.join(
+        #         configs.training_configs.outputs_dir, "test_prediction.csv"
+        #     )
 
-            train_df.to_csv(train_prediction_filepath, index=False)
-            val_df.to_csv(val_prediction_filepath, index=False)
-            test_df.to_csv(test_prediction_filepath, index=False)
+        #     train_df.to_csv(train_prediction_filepath, index=False)
+        #     val_df.to_csv(val_prediction_filepath, index=False)
+        #     test_df.to_csv(test_prediction_filepath, index=False)
 
-            train_logits_filepath = os.path.join(
-                configs.training_configs.outputs_dir, "train_logits.npy"
-            )
-            val_logits_filepath = os.path.join(
-                configs.training_configs.outputs_dir, "val_logits.npy"
-            )
-            test_logits_filepath = os.path.join(
-                configs.training_configs.outputs_dir, "test_logits.npy"
-            )
+        #     train_logits_filepath = os.path.join(
+        #         configs.training_configs.outputs_dir, "train_logits.npy"
+        #     )
+        #     val_logits_filepath = os.path.join(
+        #         configs.training_configs.outputs_dir, "val_logits.npy"
+        #     )
+        #     test_logits_filepath = os.path.join(
+        #         configs.training_configs.outputs_dir, "test_logits.npy"
+        #     )
 
-            np.save(train_logits_filepath, train_logits)
-            np.save(val_logits_filepath, val_logits)
-            np.save(test_logits_filepath, test_logits)
+        #     np.save(train_logits_filepath, train_logits)
+        #     np.save(val_logits_filepath, val_logits)
+        #     np.save(test_logits_filepath, test_logits)
 
-            wandb_tracker.save(train_prediction_filepath)
-            wandb_tracker.save(val_prediction_filepath)
-            wandb_tracker.save(test_prediction_filepath)
+        #     wandb_tracker.save(train_prediction_filepath)
+        #     wandb_tracker.save(val_prediction_filepath)
+        #     wandb_tracker.save(test_prediction_filepath)
 
-            wandb_tracker.save(train_logits_filepath)
-            wandb_tracker.save(val_logits_filepath)
-            wandb_tracker.save(test_logits_filepath)
+        #     wandb_tracker.save(train_logits_filepath)
+        #     wandb_tracker.save(val_logits_filepath)
+        #     wandb_tracker.save(test_logits_filepath)
 
         metrics_log = " - ".join(
             [
