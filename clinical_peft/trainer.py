@@ -136,6 +136,7 @@ def train(
             model = AutoModelForCausalLM.from_pretrained(
                 configs.model_configs.model_name_or_path,
                 torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+                device_map="auto",
                 return_dict=True,
             )
         elif configs.model_configs.task_type == TaskType.seq_cls:
@@ -147,6 +148,7 @@ def train(
                 label2id=labels_map,
                 id2label={v: k for k, v in labels_map.items()},
                 torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+                device_map="auto",
             )
         elif configs.model_configs.task_type == TaskType.question_ans:
             if "llama" in configs.model_configs.model_name_or_path.lower():
@@ -154,12 +156,14 @@ def train(
                     configs.model_configs.model_name_or_path,
                     return_dict=True,
                     torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+                    device_map="auto",
                 )
             else:
                 model = AutoModelForQuestionAnswering.from_pretrained(
                     configs.model_configs.model_name_or_path,
                     return_dict=True,
                     torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+                    device_map="auto",
                 )
         elif configs.model_configs.task_type == TaskType.token_cls:
             labels_map = IOB_NER_MAP[dataset_name]
@@ -171,6 +175,7 @@ def train(
                     id2label={v: k for k, v in labels_map.items()},
                     return_dict=True,
                     torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+                    device_map="auto",
                 )
             else:
                 model = AutoModelForTokenClassification.from_pretrained(
@@ -180,6 +185,7 @@ def train(
                     id2label={v: k for k, v in labels_map.items()},
                     return_dict=True,
                     torch_dtype=torch.bfloat16 if use_bf16 else torch.float32,
+                    device_map="auto",
                 )
 
         # gpu_utilisation = print_gpu_utilization()
