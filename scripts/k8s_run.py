@@ -12,6 +12,8 @@ def argument_parser():
     parser = argparse.ArgumentParser(description="Clinical PEFT")
     parser.add_argument("--run_configs_filepath", type=str, required=True)
     parser.add_argument("--user_email", type=str, required=True)
+    parser.add_argument("--git_branch", type=str, default="main")
+    parser.add_argument("--namespace", type=str, default="eidf106ns")
     args = parser.parse_args()
     return args
 
@@ -20,7 +22,7 @@ def main():
     args = argument_parser()
     configs = yaml.safe_load(open(args.run_configs_filepath, "r"))
 
-    base_args = "git clone https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git --branch longer_sequence && cd clinical_peft && "
+    base_args = f"git clone https://$GIT_TOKEN@github.com/aryopg/clinical_peft.git --branch {args.git_branch} && cd clinical_peft && "
     if configs["is_training"]:
         run_names = []
         for config in configs["configs"]:
@@ -87,6 +89,8 @@ def main():
             args=[base_args + command],
             secret_env_vars=secret_env_vars,
             user_email=args.user_email,
+            namespace=args.namespace,
+            kueue_queue_name=f"{args.namespace}-user-queue",
         )
 
         # Run the Job on the Kubernetes cluster
