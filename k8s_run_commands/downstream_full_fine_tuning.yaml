@@ -1,5 +1,5 @@
 gpu_limit: 2
-gpu_product: NVIDIA-A100-SXM4-80GB
+gpu_product: NVIDIA-A100-SXM4-40GB
 accelerate_config: ""
 is_training: true
 configs:
@@ -12,4 +12,14 @@ configs:
   - config_filepath: "configs/downstream_hpo_configs/context_length_512/diagnosis/llama_7b_baseline.yaml"
     existing_sweep_id: ""
   - config_filepath: "configs/downstream_hpo_configs/context_length_512/procedure/llama_7b_baseline.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/mortality/pmc_llama_baseline.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/los/pmc_llama_baseline.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/pmv/pmc_llama_baseline.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/diagnosis/pmc_llama_baseline.yaml"
+    existing_sweep_id: ""
+  - config_filepath: "configs/downstream_hpo_configs/context_length_512/procedure/pmc_llama_baseline.yaml"
     existing_sweep_id: ""
