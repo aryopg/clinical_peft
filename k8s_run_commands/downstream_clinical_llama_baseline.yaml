@@ -1,6 +1,6 @@
-gpu_limit: 1
-gpu_product: NVIDIA-A100-SXM4-80GB
-accelerate_config: ""
+gpu_limit: 2
+gpu_product: NVIDIA-A100-SXM4-40GB
+accelerate_config: "configs/accelerate_configs/deepspeed_2gpus.yaml"
 is_training: true
 configs:
   - config_filepath: "configs/downstream_hpo_configs/context_length_512/mortality/clinical_llama_baseline.yaml"
