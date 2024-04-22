@@ -52,7 +52,7 @@ def main() -> None:
 
     # Instantiate Accelerator and Login to WandB
     wandb_entity = os.getenv("WANDB_ENTITY", "")
-    wandb_project = os.getenv("WANDB_PROJECT_NAME", "")
+    wandb_project = "Clinical-PEFT"
 
     dataset_name = configs.training_configs.dataset_paths[0].split("/")[-1]
     model_name = configs.model_configs.model_name_or_path.split("/")[-1]

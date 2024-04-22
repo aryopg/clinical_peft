@@ -56,10 +56,6 @@ def main():
             "secret_name": "aryo-secrets",
             "key": "aryo-wandb-api-key",
         },
-        "WANDB_PROJECT_NAME": {
-            "secret_name": "aryo-secrets",
-            "key": "aryo-wandb-project-name",
-        },
         "WANDB_ENTITY": {
             "secret_name": "aryo-secrets",
             "key": "aryo-wandb-entity",

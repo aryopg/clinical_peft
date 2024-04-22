@@ -91,7 +91,6 @@ conda activate clinical_peft
 There are multiple environment variables required to run the training:
 
 - **WANDB_API_KEY**: The authorisation key to access your WandB projects
-- **WANDB_PROJECT_NAME**: The name that you like for this project
 - **WANDB_ENTITY**: The WandB entity that will host the project
 - **HF_DOWNLOAD_TOKEN**: Download token for Huggingface
 - **HF_UPLOAD_TOKEN**: Upload token for Huggingface
